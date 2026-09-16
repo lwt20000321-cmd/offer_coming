@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>小凹</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #0a0a0a;
+      --ink-soft: #3f3f46;
+      --mute: #8a8a8e;
+      --surface: #ffffff;
+      --pill: #f3f3f4;
+      --line: rgba(10, 10, 10, 0.06);
+      --on-ink: #ffffff;
+      --offer-pink: #e4889c;
+      --danger: #b42318;
+      --mx: 0.42;
+      --my: 0.28;
+      --mx2: 0.78;
+      --my2: 0.72;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; }
+    body {
+      min-height: 100dvh;
+      font-family: "PingFang SC", "Noto Sans SC", "Source Han Sans SC", -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--ink);
+      background: #fff;
+    }
+    .wash,
+    .wash-follow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .wash {
+      background:
+        radial-gradient(900px 620px at 12% 0%, rgba(214, 226, 255, 0.55), transparent 58%),
+        radial-gradient(820px 560px at 92% 100%, rgba(255, 214, 214, 0.42), transparent 55%);
+    }
+    .wash-follow {
+      background:
+        radial-gradient(560px 480px at calc(var(--mx) * 100%) calc(var(--my) * 100%), rgba(255, 176, 196, 0.42), transparent 62%),
+        radial-gradient(500px 420px at calc(var(--mx2) * 100%) calc(var(--my2) * 100%), rgba(176, 196, 255, 0.38), transparent 60%),
+        radial-gradient(460px 400px at calc(var(--mx) * 40% + 40%) calc(var(--my) * 30% + 50%), rgba(255, 224, 196, 0.28), transparent 58%);
+      mix-blend-mode: multiply;
+      transition: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .wash-follow { display: none; }
+      .ticker-track { animation: none; }
+    }
+    .ticker {
+      position: fixed;
+      left: 0;
+      right: 0;
+      height: 28px;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .ticker-top { top: 0; }
+    .ticker-bottom { bottom: 0; }
+    .ticker-track {
+      display: flex;
+      width: max-content;
+      color: #d4d4d8;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.28em;
+      line-height: 28px;
+      white-space: nowrap;
+    }
+    .ticker-run {
+      display: flex;
+      gap: 48px;
+      padding-right: 48px;
+    }
+    .ticker-left { animation: offer-left 36s linear infinite; }
+    .ticker-right { animation: offer-right 36s linear infinite; }
+    @keyframes offer-left {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+    @keyframes offer-right {
+      from { transform: translateX(-50%); }
+      to { transform: translateX(0); }
+    }
+    .app {
+      position: relative;
+      z-index: 1;
+      height: 100dvh;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: 44px 28px 48px;
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .tabs { display: flex; gap: 8px; align-items: center; }
+    .tabs-right { margin-left: auto; }
+    .account {
+      position: relative;
+      display: none;
+      align-items: center;
+    }
+    .app.is-in .account { display: flex; }
+    .app.is-in .tab-welcome { display: none; }
+    .avatar-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      padding: 0;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+    .avatar-btn svg { display: block; }
+    .account-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      min-width: 168px;
+      padding: 8px;
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: 0 20px 60px rgba(10, 10, 10, 0.08);
+      z-index: 30;
+    }
+    .account-menu.is-on { display: block; }
+    .account-menu button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      border: 0;
+      background: none;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font: 500 14px inherit;
+      color: var(--ink);
+      cursor: pointer;
+    }
+    .account-menu button:hover { background: var(--pill); }
+    .account-menu .exit { color: var(--mute); }
+    .account-sheet {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(255, 255, 255, 0.48);
+    }
+    .account-sheet.is-on { display: flex; }
+    .account-sheet .card { width: min(420px, 100%); }
+    .tabs-right { margin-left: auto; }
+    .tab {
+      height: 36px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--mute);
+      font: 500 14px inherit;
+      cursor: pointer;
+    }
+    .tab.is-on { background: var(--pill); color: var(--ink); }
+    .nav-note { color: var(--mute); font-size: 13px; }
+    .stage {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      width: min(760px, 100%);
+      margin: 0 auto;
+    }
+    #view-apps .stage,
+    #view-jingyan .stage,
+    #view-chat .stage {
+      width: min(1080px, 100%);
+      overflow: visible;
+      padding: 0 12px 16px;
+      box-sizing: border-box;
+      position: relative;
+    }
+    .view { display: none; flex: 1; flex-direction: column; min-height: 0; overflow: hidden; }
+    .view.is-on { display: flex; }
+    #view-welcome .stage {
+      width: min(840px, 100%);
+      overflow-y: auto;
+      padding: 0 40px 32px;
+      box-sizing: border-box;
+      scrollbar-width: none;
+    }
+    #view-welcome .stage::-webkit-scrollbar { width: 0; height: 0; display: none; }
+    #view-chat .chat-head.page-head { overflow: visible; padding-bottom: 23px; }
+    #view-chat .chat-head .mark {
+      margin: 0;
+      justify-content: flex-start;
+      align-items: flex-end;
+      height: 32px;
+      overflow: visible;
+    }
+    #view-chat .chat-head .mark-logo {
+      height: 56px;
+      margin-top: -24px;
+    }
+    #view-chat .chat-head .page-head-row { align-items: flex-end; min-height: 32px; }
+    #view-chat .chat-head .meta { flex: 1; min-width: 0; margin: 0; }
+    .thread-wrap {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border-radius: 32px;
+      box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05);
+      overflow: visible;
+      background: transparent;
+    }
+    .thread-wrap-body {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border-radius: 32px;
+      overflow: hidden;
+    }
+    .hero {
+      text-align: center;
+      padding: 56px 0 36px;
+    }
+    .mark {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .mark-logo {
+      display: block;
+      height: 72px;
+      width: auto;
+      background: transparent;
+    }
+    h1 {
+      margin: 0 0 14px;
+      font-family: "ZCOOL QingKe HuangYou", "PingFang SC", "Noto Sans SC", sans-serif;
+      font-size: 52px;
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      line-height: 1.2;
+      transform: scaleY(0.82);
+      transform-origin: center;
+    }
+    .hero-brand { color: var(--offer-pink); }
+    .lead, .meta {
+      margin: 0;
+      color: var(--mute);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    .meta { font-size: 14px; }
+    .meta button {
+      border: 0;
+      background: none;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+    .card {
+      background: var(--surface);
+      border-radius: 32px;
+      box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05);
+      padding: 28px 32px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 48px;
+    }
+    .row + .row { margin-top: 8px; }
+    .row input[type="email"],
+    .row input[type="text"],
+    .row input[type="password"] {
+      flex: 1;
+      border: 0;
+      background: transparent;
+      font: 500 16px inherit;
+      color: var(--ink);
+      outline: none;
+      min-width: 0;
+    }
+    .icon { width: 22px; color: var(--mute); flex: none; }
+    .file-btn {
+      flex: 1;
+      border: 0;
+      background: none;
+      text-align: left;
+      font: 500 16px inherit;
+      color: var(--mute);
+      cursor: pointer;
+      padding: 0;
+    }
+    .file-btn.has-file { color: var(--ink); }
+    .btn {
+      flex: none;
+      height: 48px;
+      padding: 0 22px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--ink);
+      color: var(--on-ink);
+      font: 500 15px inherit;
+      cursor: pointer;
+      margin-left: auto;
+    }
+    .btn:disabled { background: #d4d4d8; color: #a1a1aa; cursor: not-allowed; }
+    .hint, .error, .foot {
+      text-align: center;
+      color: var(--mute);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .hint { margin: 28px 0 0; }
+    .error { color: var(--danger); display: none; margin: 12px 0 0; }
+    .error.show { display: block; }
+    .switch {
+      display: block;
+      margin: 16px auto 0;
+      border: 0;
+      background: none;
+      color: var(--mute);
+      font: 400 13px inherit;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .foot { margin-top: auto; padding-top: 36px; }
+    .thread {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 20px 24px 12px;
+      gap: 10px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .thread::-webkit-scrollbar { width: 0; height: 0; display: none; }
+    .who { display: flex; align-items: center; align-self: flex-start; gap: 8px; font-weight: 600; margin: 0 0 2px; font-size: 13px; }
+    .who i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ink);
+      display: inline-block;
+    }
+    .msg { display: flex; max-width: 76%; min-width: 0; }
+    .msg.bot { align-self: flex-start; }
+    .msg.user { align-self: flex-end; }
+    .bubble-stack { display: flex; flex-direction: column; gap: 8px; width: 100%; min-width: 0; }
+    .say {
+      margin: 0;
+      padding: 10px 14px;
+      border-radius: 18px;
+      color: var(--ink-soft);
+      font-size: 14px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .msg.bot .say { background: var(--pill); border-bottom-left-radius: 6px; }
+    .say.user {
+      background: var(--pill);
+      color: var(--ink);
+      border-bottom-right-radius: 6px;
+    }
+    .q {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 6px 10px;
+      margin: 0 0 12px;
+      color: var(--ink-soft);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .q:last-child { margin-bottom: 0; }
+    .q-list {
+      list-style: none;
+      margin: 0;
+      padding: 10px 14px;
+      border-radius: 18px;
+      border-bottom-left-radius: 6px;
+      background: var(--pill);
+    }
+    .q b { font-weight: 600; color: var(--ink); }
+    .q span { color: var(--mute); font-size: 12px; }
+    .progress {
+      display: none;
+      flex: none;
+      margin: 0 0 8px;
+      padding: 12px 18px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.7);
+      color: var(--ink-soft);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .progress.is-on { display: block; }
+    .composer { flex: none; min-height: 0; padding: 4px 24px 20px; background: transparent; box-shadow: none; border-radius: 0; }
+    .composer-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .composer-field {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      min-height: 48px;
+      border: 1px solid rgba(10, 10, 10, 0.08);
+      border-radius: 16px;
+      background: #fff;
+      padding: 0 16px;
+    }
+    .composer-sr {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+    }
+    .composer-ph {
+      position: absolute;
+      left: 16px;
+      top: 0;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--mute);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .composer textarea {
+      display: block;
+      width: 100%;
+      height: 48px;
+      min-height: 48px;
+      max-height: 96px;
+      border: 0;
+      resize: none;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 48px;
+      color: var(--ink);
+      caret-color: var(--ink);
+      outline: none;
+      background: transparent;
+      padding: 0;
+      overflow-x: hidden;
+      overflow-y: hidden;
+      scrollbar-width: none;
+    }
+    .composer textarea.is-tall {
+      line-height: 24px;
+      padding: 12px 0;
+      overflow-y: auto;
+    }
+    .composer textarea::-webkit-scrollbar { width: 0; height: 0; display: none; }
+    .composer .send {
+      flex: none;
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: 50%;
+      background: var(--ink);
+      color: var(--on-ink);
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .composer .send:disabled { background: #d4d4d8; cursor: not-allowed; }
+    .status {
+      align-self: flex-start;
+      max-width: 76%;
+      margin: 0;
+      padding: 2px 4px;
+      color: var(--mute);
+      font-size: 12px;
+    }
+    .chat-toolbar {
+      position: fixed;
+      left: 28px;
+      right: 28px;
+      bottom: 12px;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      pointer-events: none;
+    }
+    .bar {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex: none;
+      color: var(--mute);
+      font-size: 13px;
+      pointer-events: none;
+    }
+    .bar button { pointer-events: auto; }
+    .bar button {
+      border: 0;
+      background: none;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .page-head { padding: 20px 0 16px; }
+    .page-head h2 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .page-head-row { display: flex; align-items: center; gap: 16px; }
+    .page-head-row h2 { margin: 0; }
+    .page-head p { margin: 0; color: var(--mute); font-size: 14px; line-height: 1.6; }
+    .jy-upload {
+      height: 32px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--pill);
+      color: var(--ink);
+      font: 500 13px inherit;
+      cursor: pointer;
+    }
+    .sheet {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border-radius: 32px;
+      box-shadow: 0 20px 60px rgba(10, 10, 10, 0.05);
+      overflow: visible;
+      background: transparent;
+    }
+    .sheet-body {
+      flex: 1;
+      min-height: 0;
+      background: var(--surface);
+      border-radius: 32px;
+      padding: 20px;
+      overflow: auto;
+      scrollbar-width: none;
+    }
+    .sheet-body::-webkit-scrollbar { width: 0; height: 0; display: none; }
+    table.data {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+    }
+    table.data th {
+      text-align: left;
+      color: var(--mute);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      padding: 0 8px 10px;
+      white-space: nowrap;
+    }
+    table.data td {
+      padding: 8px;
+      border-top: 1px solid var(--line);
+      vertical-align: top;
+    }
+    table.data input,
+    table.data select {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      font: inherit;
+      color: var(--ink);
+      outline: none;
+    }
+    table.data input::placeholder { color: #d4d4d8; }
+    .ghost {
+      height: 36px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--pill);
+      color: var(--ink);
+      font: 500 14px inherit;
+      cursor: pointer;
+    }
+    .linkish {
+      border: 0;
+      background: none;
+      color: var(--mute);
+      font: 400 13px inherit;
+      cursor: pointer;
+    }
+    .sheet-actions { margin-top: 16px; }
+    .item {
+      padding: 16px 0;
+      border-top: 1px solid var(--line);
+    }
+    .item:first-child { border-top: 0; padding-top: 0; }
+    .item h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+    .item .src { color: var(--mute); font-size: 12px; }
+    .item .body { display: none; margin: 12px 0 0; color: var(--ink-soft); font-size: 15px; line-height: 1.6; }
+    .item.is-open .body { display: block; }
+    .item-row { display: flex; align-items: center; gap: 12px; }
+    .empty { color: var(--mute); font-size: 15px; line-height: 1.6; }
+    @media (max-width: 768px) {
+      .app { padding: 40px 16px 40px; }
+      h1 { font-size: 32px; }
+      .hero { padding-top: 28px; }
+      .card { padding: 20px; border-radius: 24px; }
+      .thread-wrap,
+      .thread-wrap-body,
+      .sheet,
+      .sheet-body { border-radius: 24px; }
+      .row { flex-wrap: wrap; }
+      .btn { width: 100%; margin: 8px 0 0; }
+      .nav-note { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wash" aria-hidden="true"></div>
+  <div class="wash-follow" aria-hidden="true"></div>
+  <div class="ticker ticker-top" aria-hidden="true">
+    <div class="ticker-track ticker-left" id="offer-top"></div>
+  </div>
+  <div class="ticker ticker-bottom" aria-hidden="true">
+    <div class="ticker-track ticker-right" id="offer-bottom"></div>
+  </div>
+  <div class="app">
+    <header class="nav">
+      <div class="tabs">
+        <div class="account" id="account">
+          <button class="avatar-btn" type="button" id="avatar-btn" aria-label="账号" aria-expanded="false">
+            <svg viewBox="0 0 40 40" width="28" height="28" aria-hidden="true">
+              <circle cx="20" cy="15" r="6" fill="none" stroke="#0a0a0a" stroke-width="1.6"/>
+              <path d="M8 32c2.4-7 21.6-7 24 0" fill="none" stroke="#0a0a0a" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <div class="account-menu" id="account-menu">
+            <button type="button" id="menu-resume">我的简历</button>
+            <button type="button" id="menu-key">我的key</button>
+            <button type="button" class="exit" id="menu-exit">退出</button>
+          </div>
+        </div>
+        <button class="tab is-on tab-welcome" type="button" data-view="welcome">初次见面</button>
+        <button class="tab" type="button" data-view="chat" id="tab-chat">日常对话</button>
+      </div>
+      <div class="tabs tabs-right">
+        <button class="tab" type="button" data-view="jingyan">我的面经</button>
+        <button class="tab" type="button" data-view="apps">我的投递</button>
+      </div>
+    </header>
+
+    <section class="view is-on" id="view-welcome">
+      <div class="stage">
+        <div class="hero">
+          <div class="mark">
+            <img class="mark-logo" src="../assets/xiaao-logo.png" alt="小凹" />
+          </div>
+          <h1><span class="hero-brand">小凹</span>，你的专属求职搭子</h1>
+          <p class="lead">准备面试，跟进投递。也听你说说心事。</p>
+        </div>
+        <form class="card" id="welcome-form" novalidate>
+          <div class="row">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="m4 7 8 6 8-6"/></svg>
+            </span>
+            <input id="email" type="email" autocomplete="email" placeholder="留下你的收件邮箱" />
+          </div>
+          <div class="row" id="key-row">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="12" r="3"/><path d="M11 12h10v3H14"/></svg>
+            </span>
+            <input id="llm-key" type="password" autocomplete="off" placeholder="粘贴你的百炼 API Key" />
+          </div>
+          <div class="row" id="resume-row">
+            <span class="icon" aria-hidden="true">+</span>
+            <button class="file-btn" type="button" id="file-label">添加一份简历</button>
+            <input id="resume" type="file" accept=".pdf,.doc,.docx,.txt" hidden />
+            <button class="btn" type="submit" id="go">开始聊聊 ↗</button>
+          </div>
+          <p class="error" id="welcome-error">请先留下邮箱、百炼 Key，并添加一份简历。</p>
+        </form>
+        <p class="hint">出题日，一起完成五道题。<br />北京时间 10:00–24:00，未完成时每小时对话和邮件提醒，越晚越严厉。</p>
+        <button class="switch" type="button" id="mode-btn">我换了设备，只用邮箱接上</button>
+        <p class="foot">下次回来，接着聊。</p>
+      </div>
+    </section>
+
+    <section class="view" id="view-chat">
+      <div class="stage">
+        <div class="page-head chat-head">
+          <div class="page-head-row">
+            <div class="mark">
+              <img class="mark-logo" src="../assets/xiaao-logo.png" alt="小凹" />
+            </div>
+            <p class="meta">今日 0/5 题　·　2 个岗位等待面试　·　<button type="button" id="toggle-progress">查看进度 ↓</button></p>
+          </div>
+        </div>
+        <div class="progress" id="progress">
+          星河一面 · 等待面试 · 周五上午<br />
+          青禾渠道增长 · 等待面试 · 下周三<br />
+          数据岗 · 已挂 · 不再出题
+        </div>
+        <div class="thread-wrap">
+        <div class="thread-wrap-body">
+        <div class="thread" id="thread">
+          <p class="who"><i></i>小凹</p>
+          <div class="msg bot">
+            <div class="bubble-stack">
+              <p class="say">早呀，星河的一面在后天。今天给你准备了五道题，先从你最熟悉的项目开始。</p>
+              <div class="q-list">
+                <div class="q"><b>1.</b><div>你如何证明，转化率提升 18% 是你的改动带来的？<br /><span>简历深挖 · 共性题</span></div></div>
+                <div class="q"><b>2.</b><div>再选一段不同的简历经历，说明其中的冲突和你如何权衡。<br /><span>简历深挖 · 共性题</span></div></div>
+                <div class="q"><b>3.</b><div>用一次协作受阻的经历，讲清你怎么沟通、怎么收口。<br /><span>简历深挖 · 共性题</span></div></div>
+                <div class="q"><b>4.</b><div>用户注册后没有使用核心功能，你会先排查什么？<br /><span>星河 · 用户激活</span></div></div>
+                <div class="q"><b>5.</b><div>预算减半，你会如何重新分配拉新渠道？<br /><span>青禾 · 渠道增长</span></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="msg user">
+            <p class="say user">星河一面改到周五上午了。</p>
+          </div>
+          <p class="status" id="status"></p>
+        </div>
+        <form class="composer" id="chat-form">
+          <div class="composer-row">
+            <div class="composer-field">
+              <label class="composer-sr" for="input">和小凹说说</label>
+              <span class="composer-ph" id="composer-ph" aria-hidden="true">和小凹说说...</span>
+              <textarea id="input" rows="1"></textarea>
+            </div>
+            <button class="send" id="send" type="submit" disabled aria-label="发送">↑</button>
+          </div>
+        </form>
+        </div>
+        </div>
+        <div class="chat-toolbar">
+        <div class="bar">
+          <span id="mood">今天有点焦虑</span>
+          <span>北京时间 10:00 · 下次提醒 11:00</span>
+        </div>
+        <div class="bar">
+          <button type="button" id="late-demo">演示晚间催促</button>
+          <span>原型演示，不会发真实邮件</span>
+        </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-apps">
+      <div class="stage">
+        <div class="page-head">
+          <h2>我的投递</h2>
+          <p>改格子会马上记住。面试时间可以空着。改成已挂且还有面经时，会回到对话里问你删不删。</p>
+        </div>
+        <div class="sheet">
+          <div class="sheet-body">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>公司</th><th>岗位</th><th>投递链接</th><th>投递时间</th><th>面试时间</th><th>投递状态</th><th>面试总结</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="app-body"></tbody>
+          </table>
+          <div class="sheet-actions">
+            <button class="ghost" type="button" id="add-row">加一行</button>
+          </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-jingyan">
+      <div class="stage">
+        <div class="page-head">
+          <div class="page-head-row">
+            <h2>我的面经</h2>
+            <button class="jy-upload" type="button" id="upload-jy">上传面经</button>
+            <input id="jy-file" type="file" accept=".pdf,.doc,.docx,.txt,.md" hidden />
+          </div>
+        </div>
+        <div class="sheet">
+          <div class="sheet-body" id="jy-list"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="account-sheet" id="sheet-resume" role="dialog" aria-labelledby="resume-title">
+    <div class="card">
+      <h2 id="resume-title" style="margin:0 0 12px;font-size:18px;">我的简历</h2>
+      <p class="lead" id="resume-on-file">当前在档：林晓_产品简历.pdf</p>
+      <div class="row" style="margin-top:12px;">
+        <button class="file-btn" type="button" id="replace-resume-btn">更换简历</button>
+        <input id="replace-resume" type="file" accept=".pdf,.doc,.docx,.txt" hidden />
+      </div>
+      <p class="error" id="resume-panel-error">请选择可用的简历文件。</p>
+      <button class="btn" type="button" id="close-resume" style="margin:16px 0 0;">完成</button>
+    </div>
+  </div>
+  <div class="account-sheet" id="sheet-key" role="dialog" aria-labelledby="key-title">
+    <div class="card">
+      <h2 id="key-title" style="margin:0 0 12px;font-size:18px;">我的key</h2>
+      <p class="lead">已保存。完整 Key 不会显示。</p>
+      <div class="row" style="margin-top:12px;">
+        <input id="new-key" type="password" autocomplete="off" placeholder="粘贴新的百炼 API Key" />
+      </div>
+      <p class="error" id="key-panel-error">Key 无效，请更换后再保存。</p>
+      <p class="hint" id="key-panel-hint" style="margin-top:12px;display:none;">这次没连上，先保存了。</p>
+      <div class="row" style="margin-top:16px;">
+        <button class="btn" type="button" id="save-key">保存</button>
+        <button class="switch" type="button" id="close-key" style="margin:0 0 0 12px;">取消</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    function fillOffer(id) {
+      const track = document.getElementById(id);
+      const words = Array.from({ length: 16 }, () => "<span>OFFER</span>").join("");
+      track.innerHTML = `<div class="ticker-run">${words}</div><div class="ticker-run">${words}</div>`;
+    }
+    fillOffer("offer-top");
+    fillOffer("offer-bottom");
+
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const root = document.documentElement;
+    let tx = 0.42, ty = 0.28, cx = 0.42, cy = 0.28, t = 0;
+    window.addEventListener("pointermove", (event) => {
+      tx = event.clientX / window.innerWidth;
+      ty = event.clientY / window.innerHeight;
+    });
+    function wave() {
+      if (!reduce) {
+        t += 0.008;
+        cx += (tx - cx) * 0.06;
+        cy += (ty - cy) * 0.06;
+        const w1 = Math.sin(t) * 0.04;
+        const w2 = Math.cos(t * 0.85) * 0.05;
+        root.style.setProperty("--mx", String(cx + w1));
+        root.style.setProperty("--my", String(cy + w2));
+        root.style.setProperty("--mx2", String(1 - cx + w2));
+        root.style.setProperty("--my2", String(1 - cy + w1));
+      }
+      requestAnimationFrame(wave);
+    }
+    wave();
+
+    const views = {
+      welcome: document.getElementById("view-welcome"),
+      chat: document.getElementById("view-chat"),
+      apps: document.getElementById("view-apps"),
+      jingyan: document.getElementById("view-jingyan"),
+    };
+    const tabs = document.querySelectorAll(".tab");
+    const appEl = document.querySelector(".app");
+    const accountMenu = document.getElementById("account-menu");
+    const avatarBtn = document.getElementById("avatar-btn");
+    const keyRow = document.getElementById("key-row");
+    const llmKey = document.getElementById("llm-key");
+    let entered = false;
+    const gated = new Set(["chat", "apps", "jingyan"]);
+    let resumeFileName = "林晓_产品简历.pdf";
+
+    function setEntered(value) {
+      entered = value;
+      appEl.classList.toggle("is-in", value);
+      if (!value) {
+        accountMenu.classList.remove("is-on");
+        avatarBtn.setAttribute("aria-expanded", "false");
+      }
+    }
+
+    function show(name, force) {
+      if (gated.has(name) && !entered && !force) {
+        document.getElementById("welcome-error").textContent = "还不能进去。先留下邮箱、百炼 Key 和简历，或只用已有邮箱接上。";
+        document.getElementById("welcome-error").classList.add("show");
+        show("welcome", true);
+        return;
+      }
+      Object.entries(views).forEach(([key, el]) => el.classList.toggle("is-on", key === name));
+      tabs.forEach((tab) => tab.classList.toggle("is-on", tab.dataset.view === name));
+      history.replaceState(null, "", "#" + name);
+    }
+    tabs.forEach((tab) => tab.addEventListener("click", () => show(tab.dataset.view)));
+
+    const email = document.getElementById("email");
+    const resume = document.getElementById("resume");
+    const fileLabel = document.getElementById("file-label");
+    const resumeRow = document.getElementById("resume-row");
+    const welcomeError = document.getElementById("welcome-error");
+    const go = document.getElementById("go");
+    const modeBtn = document.getElementById("mode-btn");
+    let resumeOnly = false;
+
+    fileLabel.addEventListener("click", () => resume.click());
+    resume.addEventListener("change", () => {
+      if (resume.files[0]) {
+        fileLabel.textContent = resume.files[0].name;
+        fileLabel.classList.add("has-file");
+      }
+    });
+    modeBtn.addEventListener("click", () => {
+      resumeOnly = !resumeOnly;
+      fileLabel.hidden = resumeOnly;
+      resumeRow.querySelector(".icon").hidden = resumeOnly;
+      keyRow.hidden = resumeOnly;
+      go.textContent = resumeOnly ? "接上记录 ↗" : "开始聊聊 ↗";
+      modeBtn.textContent = resumeOnly ? "我是第一次来，要上传简历和 Key" : "我换了设备，只用邮箱接上";
+      welcomeError.classList.remove("show");
+    });
+    document.getElementById("welcome-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
+      const needFile = !resumeOnly && !resume.files[0];
+      const keyValue = llmKey.value.trim();
+      const needKey = !resumeOnly && !keyValue;
+      const emailNeedsKey = resumeOnly && email.value.trim().toLowerCase() === "nokey@example.com";
+      if (emailNeedsKey && !keyValue) {
+        welcomeError.textContent = "这个邮箱还没有 Key，请补贴后再进入。";
+        welcomeError.classList.add("show");
+        keyRow.hidden = false;
+        return;
+      }
+      if (!valid || needFile || needKey) {
+        welcomeError.textContent = resumeOnly
+          ? "请填写已用过的邮箱，才能接上记录。"
+          : "请先留下邮箱、百炼 Key，并添加一份简历。";
+        welcomeError.classList.add("show");
+        return;
+      }
+      if (!resumeOnly && keyValue === "sk-invalid") {
+        welcomeError.textContent = "Key 无效，请更换后再进入。";
+        welcomeError.classList.add("show");
+        return;
+      }
+      welcomeError.classList.remove("show");
+      if (resume.files[0]) resumeFileName = resume.files[0].name;
+      setEntered(true);
+      if (resumeOnly) prependChat("同一邮箱接上了。简历和 Key 还在，今日五题也还在。不用重传，也不用验证码。");
+      else if (keyValue === "sk-timeout") prependChat("这次没连上百炼，Key 先保存了。你可以直接开始说。");
+      else prependChat("简历我收下了。把你投过的岗位和链接发给我，我对照简历总结考查点。");
+      show("chat", true);
+    });
+
+    const thread = document.getElementById("thread");
+    const input = document.getElementById("input");
+    const send = document.getElementById("send");
+    const status = document.getElementById("status");
+    const mood = document.getElementById("mood");
+    let counseling = false;
+    let typing = false;
+
+    document.getElementById("toggle-progress").addEventListener("click", () => {
+      document.getElementById("progress").classList.toggle("is-on");
+    });
+
+    function prependChat(text) {
+      const wrap = document.createElement("div");
+      wrap.className = "msg bot";
+      const p = document.createElement("p");
+      p.className = "say";
+      p.textContent = text;
+      wrap.appendChild(p);
+      thread.insertBefore(wrap, thread.children[1]);
+    }
+    function addSay(role, text) {
+      const wrap = document.createElement("div");
+      wrap.className = role === "user" ? "msg user" : "msg bot";
+      const p = document.createElement("p");
+      p.className = role === "user" ? "say user" : "say";
+      p.textContent = role === "user" ? text : "";
+      wrap.appendChild(p);
+      thread.insertBefore(wrap, status);
+      return p;
+    }
+    function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+    async function stream(el, text) {
+      let shown = "";
+      for (const ch of text) {
+        shown += ch;
+        el.textContent = shown;
+        if (!reduce) await sleep(12);
+      }
+    }
+    function replyFor(text) {
+      if (/心情变好|好多了|不焦虑/.test(text)) {
+        counseling = false;
+        mood.textContent = "心情慢慢回来了";
+        return { status: "正在接回今天的题", text: "好，辅导停在这里。第二题还空着：用户注册后没有使用核心功能，你会先排查什么？" };
+      }
+      if (/不开心|焦虑|难受|崩溃/.test(text)) {
+        counseling = true;
+        mood.textContent = "正在听你说";
+        return { status: "先听你说", text: "我在。先不催题。你现在是投完没回音，还是这五题压着你？身体和呼吸是什么感觉？" };
+      }
+      if (/http|岗位|JD|星河/.test(text)) {
+        if (/打不开|失败/.test(text)) {
+          return { status: "正在读取岗位链接", text: "这个链接我读不到。换一个公开页，或把 JD 正文贴过来，我才能对照简历总结考查点。" };
+        }
+        return { status: "正在读取岗位链接", text: "我读了这份 JD，对照你简历后，考查点更集中在：激活怎么定义、渠道取舍，以及你有没有从 0 到 1 的证据。不是复述职位描述。已收入星河一面的两段公开面经，可在「我的面经」查看。" };
+      }
+      if (/已挂|挂了/.test(text)) {
+        return { status: "正在记下进度", text: "记下了，这个岗位之后不再出题。相关面经里，「激活指标」那篇对其它产品岗还有用；渠道投放那篇只对这个已挂岗位。要删后一篇吗？" };
+      }
+      return { status: "正在想怎么回你", text: counseling ? "我还在听。你愿意的话，继续说现在的感觉。" : "我记下了。答题就按题号写；报进度就把公司和状态放在一句里。" };
+    }
+    function fitComposerHeight(node) {
+      if (node.value === "") {
+        node.classList.remove("is-tall");
+        node.style.height = "48px";
+        return;
+      }
+      node.classList.add("is-tall");
+      node.style.height = "auto";
+      const next = Math.min(Math.max(node.scrollHeight, 48), 96);
+      if (next <= 48 && !node.value.includes("\n")) {
+        node.classList.remove("is-tall");
+        node.style.height = "48px";
+        return;
+      }
+      node.style.height = next + "px";
+    }
+    input.addEventListener("input", () => {
+      send.disabled = !input.value.trim() || typing;
+      fitComposerHeight(input);
+    });
+    input.addEventListener("focus", () => {
+      document.getElementById("composer-ph").hidden = true;
+    });
+    input.addEventListener("blur", () => {
+      document.getElementById("composer-ph").hidden = Boolean(input.value);
+    });
+    document.getElementById("chat-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const text = input.value.trim();
+      if (!text || typing) return;
+      addSay("user", text);
+      input.value = "";
+      fitComposerHeight(input);
+      document.getElementById("composer-ph").hidden = false;
+      send.disabled = true;
+      typing = true;
+      const planned = replyFor(text);
+      status.textContent = planned.status;
+      await sleep(360);
+      const el = addSay("bot", "");
+      await stream(el, planned.text);
+      status.textContent = "";
+      typing = false;
+      send.disabled = !input.value.trim();
+    });
+    document.getElementById("late-demo").addEventListener("click", () => {
+      const el = addSay("bot", "");
+      el.textContent = counseling
+        ? "你还没说心情变好。催促先停着，我们还在刚才那件事上。"
+        : "还没答完。十二点以前，把五题写完。别再跟我耗。";
+    });
+
+    const apps = [
+      { company: "星河", role: "一面", url: "https://jobs.example.com/xinghe", applied: "2026-09-12", interview: "周五上午", status: "等待面试", summary: "", hasJy: true },
+      { company: "青禾", role: "渠道增长", url: "https://jobs.example.com/qinghe", applied: "2026-09-10", interview: "", status: "等待面试", summary: "", hasJy: true },
+      { company: "数据岗", role: "分析", url: "", applied: "2026-09-01", interview: "", status: "已挂", summary: "已结束", hasJy: false },
+    ];
+    const jingyan = [
+      { title: "星河一面：激活指标怎么问", src: "检索 · 星河", body: "常见追问：激活怎么定义、有没有对照组、你怎么排除季节因素。", open: false },
+      { title: "你上传的渠道面经.pdf", src: "上传 · 青禾", body: "预算减半时先砍不能讲清贡献的渠道，留下能复盘的投放。", open: false },
+    ];
+
+    function todayBeijing() {
+      return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" });
+    }
+    function renderApps() {
+      const body = document.getElementById("app-body");
+      body.innerHTML = apps.map((row, i) => `
+        <tr>
+          <td><input data-i="${i}" data-k="company" value="${row.company}" /></td>
+          <td><input data-i="${i}" data-k="role" value="${row.role}" /></td>
+          <td><input data-i="${i}" data-k="url" value="${row.url}" /></td>
+          <td><input data-i="${i}" data-k="applied" value="${row.applied}" /></td>
+          <td><input data-i="${i}" data-k="interview" value="${row.interview}" placeholder="可空" /></td>
+          <td>
+            <select data-i="${i}" data-k="status">
+              <option value=""></option>
+              <option${row.status === "简历筛选中" ? " selected" : ""}>简历筛选中</option>
+              <option${row.status === "简历挂" ? " selected" : ""}>简历挂</option>
+              <option${row.status === "待测评" ? " selected" : ""}>待测评</option>
+              <option${row.status === "已测评" ? " selected" : ""}>已测评</option>
+              <option${row.status === "一面" ? " selected" : ""}>一面</option>
+              <option${row.status === "二面" ? " selected" : ""}>二面</option>
+              <option${row.status === "三面" ? " selected" : ""}>三面</option>
+              <option${row.status === "等待面试" ? " selected" : ""}>等待面试</option>
+              <option${row.status === "已挂" ? " selected" : ""}>已挂</option>
+            </select>
+          </td>
+          <td><input data-i="${i}" data-k="summary" value="${row.summary}" /></td>
+          <td><button class="linkish" type="button" data-del="${i}">删除</button></td>
+        </tr>`).join("");
+      body.querySelectorAll("input, select").forEach((el) => {
+        el.addEventListener("change", () => {
+          const i = Number(el.dataset.i);
+          const prev = apps[i].status;
+          apps[i][el.dataset.k] = el.value;
+          if (el.dataset.k === "status" && (el.value === "已挂" || el.value === "简历挂") && prev !== el.value && apps[i].hasJy) {
+            show("chat", true);
+            const bot = addSay("bot", "");
+            bot.textContent = `${apps[i].company} 已记下为已挂，不再出题。「激活指标」那篇对其它产品岗还有用；只针对该岗的渠道帖建议删掉。要删后一篇吗？`;
+          }
+        });
+      });
+      body.querySelectorAll("[data-del]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          apps.splice(Number(btn.dataset.del), 1);
+          renderApps();
+        });
+      });
+    }
+    function renderJingyan() {
+      const box = document.getElementById("jy-list");
+      if (!jingyan.length) {
+        box.innerHTML = "<p class=\"empty\">还没有收录的面经。投递岗位后我会去搜公开经验；你也可以点上方「上传面经」发文件。</p>";
+        return;
+      }
+      box.innerHTML = jingyan.map((item, i) => `
+        <article class="item${item.open ? " is-open" : ""}">
+          <div class="item-row">
+            <div>
+              <h3>${item.title}</h3>
+              <div class="src">${item.src}</div>
+            </div>
+            <button class="linkish" type="button" data-open="${i}">${item.open ? "收起" : "看正文"}</button>
+            <button class="linkish" type="button" data-rm="${i}">删除</button>
+          </div>
+          <p class="body">${item.body}</p>
+        </article>`).join("");
+      box.querySelectorAll("[data-open]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          jingyan[Number(btn.dataset.open)].open = !jingyan[Number(btn.dataset.open)].open;
+          renderJingyan();
+        });
+      });
+      box.querySelectorAll("[data-rm]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          jingyan.splice(Number(btn.dataset.rm), 1);
+          renderJingyan();
+        });
+      });
+    }
+    document.getElementById("add-row").addEventListener("click", () => {
+      apps.push({ company: "", role: "", url: "", applied: todayBeijing(), interview: "", status: "等待面试", summary: "", hasJy: false });
+      renderApps();
+    });
+    renderApps();
+    renderJingyan();
+
+    document.getElementById("upload-jy").addEventListener("click", () => document.getElementById("jy-file").click());
+    document.getElementById("jy-file").addEventListener("change", () => {
+      const file = document.getElementById("jy-file").files[0];
+      if (!file || !entered) return;
+      jingyan.unshift({ title: file.name, src: "上传", body: "原型演示：文件正文会在这里展开。", open: false });
+      renderJingyan();
+      document.getElementById("jy-file").value = "";
+    });
+
+    const hash = location.hash.replace("#", "");
+    if (["chat", "apps", "jingyan"].includes(hash)) {
+      setEntered(true);
+      show(hash, true);
+    } else {
+      show("welcome", true);
+    }
+
+    function closeMenu() {
+      accountMenu.classList.remove("is-on");
+      avatarBtn.setAttribute("aria-expanded", "false");
+    }
+    avatarBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const open = accountMenu.classList.toggle("is-on");
+      avatarBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    document.addEventListener("click", (event) => {
+      if (!document.getElementById("account").contains(event.target)) closeMenu();
+    });
+    document.getElementById("menu-resume").addEventListener("click", () => {
+      closeMenu();
+      document.getElementById("resume-on-file").textContent = "当前在档：" + resumeFileName;
+      document.getElementById("sheet-resume").classList.add("is-on");
+    });
+    document.getElementById("menu-key").addEventListener("click", () => {
+      closeMenu();
+      document.getElementById("new-key").value = "";
+      document.getElementById("key-panel-error").classList.remove("show");
+      document.getElementById("key-panel-hint").style.display = "none";
+      document.getElementById("sheet-key").classList.add("is-on");
+    });
+    document.getElementById("menu-exit").addEventListener("click", () => {
+      closeMenu();
+      setEntered(false);
+      document.getElementById("sheet-resume").classList.remove("is-on");
+      document.getElementById("sheet-key").classList.remove("is-on");
+      show("welcome", true);
+    });
+    document.getElementById("close-resume").addEventListener("click", () => {
+      document.getElementById("sheet-resume").classList.remove("is-on");
+    });
+    document.getElementById("replace-resume-btn").addEventListener("click", () => {
+      document.getElementById("replace-resume").click();
+    });
+    document.getElementById("replace-resume").addEventListener("change", () => {
+      const file = document.getElementById("replace-resume").files[0];
+      if (!file) return;
+      resumeFileName = file.name;
+      document.getElementById("resume-on-file").textContent = "当前在档：" + resumeFileName;
+    });
+    document.getElementById("close-key").addEventListener("click", () => {
+      document.getElementById("sheet-key").classList.remove("is-on");
+    });
+    document.getElementById("save-key").addEventListener("click", () => {
+      const value = document.getElementById("new-key").value.trim();
+      const err = document.getElementById("key-panel-error");
+      const hint = document.getElementById("key-panel-hint");
+      hint.style.display = "none";
+      if (!value) {
+        err.textContent = "请粘贴新的百炼 Key。";
+        err.classList.add("show");
+        return;
+      }
+      if (value === "sk-invalid") {
+        err.textContent = "Key 无效，请更换后再保存。";
+        err.classList.add("show");
+        return;
+      }
+      err.classList.remove("show");
+      if (value === "sk-timeout") hint.style.display = "block";
+      else document.getElementById("sheet-key").classList.remove("is-on");
+    });
+  </script>
+</body>
+</html>

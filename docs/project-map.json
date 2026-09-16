@@ -1,0 +1,3886 @@
+{
+  "project": {
+    "id": "offer_coming",
+    "name": "面试陪伴 Agent",
+    "generated_at": "2026-09-14",
+    "checked_at": "2026-09-14",
+    "fingerprint_algo": "sha256-16",
+    "git_revision": "未找到提交（项目仓库尚无 HEAD）",
+    "previous_delivery": "T-011 已通过（首次导航）；T-022 已通过（四页与五套模型）。本轮 T-031 只刷新导航，覆盖欢迎 Key、虚拟头像任务栏、API-016、API-017、API-018、API-001/002/003 扩展、LlmClient 求职者 Key、D-007-C、D-008-B、D-009-B。不改业务代码或原任务状态。",
+    "purpose": "从实际页面追到请求封装、后端路由、求职者 Key 与头像任务栏。不展示旧的管理分区。不把运营 llm_api_key 写成用户流量。不把小红书爬虫写成已实现。"
+  },
+  "pages": [
+    {
+      "id": "page-welcome",
+      "name": "初次见面（UI-01）",
+      "route": "/",
+      "purpose": "首次用邮箱 + 百炼 Key + 简历进入；换设备只用邮箱接续（库中已有 Key 时不必再贴）；已登录再打开 / 会持续重定向到 /chat，不露出欢迎表单。",
+      "feature_ids": [
+        "feat-onboard-create",
+        "feat-onboard-email",
+        "feat-onboard-restore"
+      ]
+    },
+    {
+      "id": "page-chat",
+      "name": "日常对话（UI-02）",
+      "route": "/chat",
+      "purpose": "岗位、进度、三题、催促、辅导、发面经、已挂询问都在同一条小凹对话。已登录后顶栏左侧是虚拟头像任务栏（我的简历 / 我的key / 退出），不再保留「初次见面」表单。右侧仍是「我的面经」「我的投递」。",
+      "feature_ids": [
+        "feat-avatar-taskbar",
+        "feat-resume-panel",
+        "feat-key-panel",
+        "feat-sign-out",
+        "feat-chat-thread",
+        "feat-chat-job",
+        "feat-chat-kb-ingest",
+        "feat-chat-kb-ask",
+        "feat-chat-questions",
+        "feat-chat-nudge",
+        "feat-chat-counseling",
+        "feat-chat-email-fail"
+      ]
+    },
+    {
+      "id": "page-apps",
+      "name": "我的投递（UI-03）",
+      "route": "/apps",
+      "purpose": "投递表：改格子离格保存、加行、删行。改成已挂且有相关面经时立刻回对话看 kb_ask（D-006-A）。已登录顶栏同样是虚拟头像任务栏，不是「初次见面」。",
+      "feature_ids": [
+        "feat-avatar-taskbar",
+        "feat-apps-table",
+        "feat-apps-rejected-jump"
+      ]
+    },
+    {
+      "id": "page-knowledge",
+      "name": "我的面经（UI-04）",
+      "route": "/jingyan",
+      "purpose": "看已收录列表和正文，可手删。已登录顶栏同样是虚拟头像。T-022 写本页没有上传；当前源码标题旁有「上传面经」，本轮只刷新 Key/头像，该上传路径标待复核。",
+      "feature_ids": [
+        "feat-avatar-taskbar",
+        "feat-kb-browse",
+        "feat-kb-delete"
+      ]
+    }
+  ],
+  "features": [
+    {
+      "id": "feat-onboard-create",
+      "page_id": "page-welcome",
+      "name": "首次邮箱 + Key + 简历进入",
+      "trigger": "欢迎页填写邮箱、粘贴百炼 Key、选择简历，点「开始聊聊」。提交后按钮「正在确认 Key」，不可连点。",
+      "input": "邮箱；以 sk- 开头的百炼 Key（password，trim，不填模型名）；pdf/docx/txt 文件。前端扩展名与 10MB；后端再校验。禁止把运营 Key 当作用户填写。",
+      "output": "写入 session_token 后进入 /chat。探测 unreachable 时对话页展示 entryNotice「这次没连上」。失败留在本页显示中文原因。响应禁止回传 Key。",
+      "api_ids": [
+        "api-001"
+      ],
+      "algorithm_ids": [
+        "alg-resume-onboard",
+        "alg-llm-probe"
+      ],
+      "module_ids": [
+        "mod-resume",
+        "mod-candidate",
+        "mod-llm-probe"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "frontend/src/pages/OnboardingPage.tsx",
+          "symbol": "OnboardingPage.onSubmit",
+          "fingerprint": "60787a9624053198",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/utils/llmKey.ts",
+          "symbol": "isLlmKeyFormatValid",
+          "fingerprint": "965a4916804a980e",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/stores/SessionProvider.tsx",
+          "symbol": "startWithResume / persistStart",
+          "fingerprint": "952fb953356d46e6",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/services/candidates.ts",
+          "symbol": "createCandidate",
+          "fingerprint": "aac14bf53b5a5b3b",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/api/routes/candidates.py",
+          "symbol": "create_candidate",
+          "fingerprint": "0b5cb5376b62f087",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "CandidateService.start_with_resume",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/llm_probe.py",
+          "symbol": "probe_llm_api_key",
+          "fingerprint": "3e6fa25003fae609",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "用户",
+          "action": "提交邮箱、Key 和简历",
+          "data": "email、llm_api_key、File",
+          "branch": "缺邮箱/Key/文件：前端文案「请先填写邮箱、粘贴 Key 并上传简历，才能和小凹对话。」不发请求"
+        },
+        {
+          "actor": "前端",
+          "action": "isValidEmail / isLlmKeyFormatValid / isAllowedResume",
+          "data": "Key trim 后须以 sk- 开头；扩展名 .pdf/.docx/.txt；大小 ≤ 10485760 字节",
+          "branch": "格式或大小不符：resumeHint 或 NEED_ALL"
+        },
+        {
+          "actor": "前端",
+          "action": "createCandidate → POST /candidates",
+          "data": "multipart：email、resume、llm_api_key；超时 60s；公开接口不带 Bearer",
+          "branch": "VITE_USE_MOCK=true 走 mocks；Mock 落盘 token+摘要，禁止写 Key"
+        },
+        {
+          "actor": "后端",
+          "action": "D-007-C 探测后建档",
+          "data": "normalize_email、probe_llm_api_key、加密密文、存原件、抽文本、建 candidate/conversation/session",
+          "branch": "邮箱已存在：409 CONFLICT「这个邮箱已有记录，请直接用邮箱进入」。探测 401：400 LLM_KEY_INVALID 不建档。429/5xx/超时仍建档，llm_key_probe_status=unreachable"
+        },
+        {
+          "actor": "前端",
+          "action": "writeSessionToken，设 entryNotice，navigate('/chat')",
+          "data": "localStorage key=session_token；ChatPage 渲染 .chat-entry-notice",
+          "branch": "探测 unreachable：目的页必须渲染同一 Context 提示。网络失败：「现在连不上，请稍后再试。」"
+        }
+      ]
+    },
+    {
+      "id": "feat-onboard-email",
+      "page_id": "page-welcome",
+      "name": "换设备只用邮箱接续（可补贴 Key）",
+      "trigger": "点「我换了设备，只用邮箱接上」，再点「接上记录」。仅邮箱模式默认不展示 Key 行；409 LLM_KEY_REQUIRED 后再露出 Key 行。",
+      "input": "已用过的邮箱。库中已有 Key 时不必再贴。旧档无 Key 时补贴一把 sk- Key。不上传简历，无验证码。",
+      "output": "新 session_token，进入已有对话。未知邮箱 404。无 Key 且未补贴 409。探测 401 不写入。",
+      "api_ids": [
+        "api-002"
+      ],
+      "algorithm_ids": [
+        "alg-session-continue",
+        "alg-llm-probe"
+      ],
+      "module_ids": [
+        "mod-candidate",
+        "mod-llm-probe"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "frontend/src/pages/OnboardingPage.tsx",
+          "symbol": "resumeOnly / continueWithEmail",
+          "fingerprint": "60787a9624053198",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/services/sessions.ts",
+          "symbol": "createSession",
+          "fingerprint": "902bcf111959edb3",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/api/routes/sessions.py",
+          "symbol": "create_session",
+          "fingerprint": "cce7b3987e35b18b",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "CandidateService.continue_with_email",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "用户",
+          "action": "切换为仅邮箱模式并提交",
+          "data": "email；必要时 llm_api_key",
+          "branch": "空邮箱：「请填写已用过的邮箱，才能接上记录。」"
+        },
+        {
+          "actor": "前端",
+          "action": "createSession({email, llm_api_key?})",
+          "data": "JSON；有 Key 时超时 60s，仅邮箱 10s",
+          "branch": "公开 POST /sessions，不带 Token。已有 Key 时忽略多余 Key，不在此接口覆盖"
+        },
+        {
+          "actor": "后端",
+          "action": "按规范化邮箱查找 candidate",
+          "data": "SessionStartPublic",
+          "branch": "无记录：404「这个邮箱还没有简历记录，请先上传简历并粘贴 Key。」无密文且未带 Key：409 LLM_KEY_REQUIRED。无密文且带 Key：D-007-C 后加密写入"
+        },
+        {
+          "actor": "前端",
+          "action": "写入 token 并进入 /chat",
+          "data": "session_token、conversation_id、entryNotice",
+          "branch": "成功 message「已接上原来的简历和任务」；unreachable 时目的页提示这次没连上"
+        }
+      ]
+    },
+    {
+      "id": "feat-onboard-restore",
+      "page_id": "page-welcome",
+      "name": "同浏览器令牌自动进对话",
+      "trigger": "打开站点时 SessionProvider 读 localStorage；已登录访问 / 时 App 与 OnboardingPage 持续 replace 到 /chat，不只在冷启动跳一次。",
+      "input": "localStorage.session_token。Mock 另有 offer_coming_mock_store_v1（opaque token + 摘要，禁止写 Key）。",
+      "output": "有效且 has_llm_api_key 为真则直接对话页；401 或无 Key 清 token 留在欢迎页。未登录点顶栏「我的投递/我的面经」拦回欢迎页。",
+      "api_ids": [
+        "api-003"
+      ],
+      "algorithm_ids": [
+        "alg-session-restore"
+      ],
+      "module_ids": [
+        "mod-candidate"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "frontend/src/App.tsx",
+          "symbol": "status + pathname 持续重定向",
+          "fingerprint": "91858e429e9c1031",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/pages/OnboardingPage.tsx",
+          "symbol": "authenticated → Navigate /chat",
+          "fingerprint": "60787a9624053198",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/stores/SessionProvider.tsx",
+          "symbol": "restoreSession / requestAppsAccess",
+          "fingerprint": "952fb953356d46e6",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/router/index.tsx",
+          "symbol": "RequireAuth",
+          "fingerprint": "be573a0a56a21b30",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/components/AppHeader.tsx",
+          "symbol": "entered ? AccountMenu : 初次见面",
+          "fingerprint": "37024f2a439320e5",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/mocks/session.ts",
+          "symbol": "assertNoKeyLeak / MOCK_STORE_KEY",
+          "fingerprint": "dff937d19a076cbf",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/api/deps.py",
+          "symbol": "get_current_candidate",
+          "fingerprint": "119be4b8f54291e2",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "前端",
+          "action": "启动 restoreSession",
+          "data": "Bearer session_token",
+          "branch": "无 token：status=anonymous，停在 /"
+        },
+        {
+          "actor": "后端",
+          "action": "GET /api/candidates/current",
+          "data": "hash_session_token 查 sessions；摘要含 has_llm_api_key、llm_key_status；禁止回传 Key",
+          "branch": "无/错/过期：401「接续已失效，请用邮箱重新进入。」has_llm_api_key===false：前端清 token 当匿名"
+        },
+        {
+          "actor": "前端",
+          "action": "authenticated 且路径为 / 时持续 navigate('/chat')",
+          "data": "CandidateCurrentPublic；OnboardingPage 不渲染欢迎表单",
+          "branch": "恢复时 conversationId 暂写成 cv_${candidate.id}，进入对话后由 GET /conversations/current 纠正"
+        },
+        {
+          "actor": "前端",
+          "action": "未登录访问 /chat、/apps、/jingyan",
+          "data": "RequireAuth；requestChatAccess / requestAppsAccess",
+          "branch": "Navigate 回 /。文案含「粘贴 Key」"
+        }
+      ]
+    },
+    {
+      "id": "feat-avatar-taskbar",
+      "page_id": "page-chat",
+      "name": "虚拟头像任务栏",
+      "trigger": "已登录后顶栏左侧不再是「初次见面」；点产品提供的虚拟头像（不上传真人照片）展开任务栏。",
+      "input": "无新业务页。三项：「我的简历」「我的key」「退出」。",
+      "output": "菜单在头像下方；点简历/Key 打开面板（portal 到 body）；点退出走 API-018。投递页、面经页同一套 AccountMenu。",
+      "api_ids": [
+        "api-016",
+        "api-017",
+        "api-018"
+      ],
+      "algorithm_ids": [
+        "alg-resume-replace",
+        "alg-key-update",
+        "alg-session-revoke"
+      ],
+      "module_ids": [
+        "mod-candidate"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "frontend/src/components/AppHeader.tsx",
+          "symbol": "entered ? AccountMenu : 初次见面",
+          "fingerprint": "37024f2a439320e5",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/components/AccountMenu.tsx",
+          "symbol": "avatar-btn / account-menu",
+          "fingerprint": "68b4524d4909ba08",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/assets/account-avatar.svg",
+          "symbol": "产品虚拟头像静态资源",
+          "fingerprint": "2357798eb5b70cff",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "界面",
+          "action": "status===authenticated 时渲染 AccountMenu",
+          "data": "img account-avatar.svg 28×28",
+          "branch": "未登录仍显示「初次见面」胶囊"
+        },
+        {
+          "actor": "用户",
+          "action": "点头像切换 aria-expanded",
+          "data": "菜单三项 role=menuitem",
+          "branch": "点击菜单外 pointerdown 收起。不新增顶栏业务页"
+        },
+        {
+          "actor": "用户",
+          "action": "点「我的简历」或「我的key」",
+          "data": "createPortal 打开 ResumePanel / KeyPanel",
+          "branch": "等待与失败都在面板内，不跳新路由"
+        },
+        {
+          "actor": "用户",
+          "action": "点「退出」",
+          "data": "signOut → DELETE /sessions/current 再清 token",
+          "branch": "401 仍清本地，回到 /"
+        }
+      ]
+    },
+    {
+      "id": "feat-resume-panel",
+      "page_id": "page-chat",
+      "name": "任务栏替换简历（API-016）",
+      "trigger": "头像菜单「我的简历」。展示当前在档文件名；选新文件后点「保存」。",
+      "input": "Bearer。multipart 字段 resume，格式与上限同 API-001。不传邮箱、不传 Key。",
+      "output": "成功：「已换成 {filename}」，用户仍留在当前业务页，不必再填邮箱或 Key。失败保留旧档，面板内中文原因。",
+      "api_ids": [
+        "api-016"
+      ],
+      "algorithm_ids": [
+        "alg-resume-replace"
+      ],
+      "module_ids": [
+        "mod-resume",
+        "mod-candidate"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "frontend/src/components/ResumePanel.tsx",
+          "symbol": "onSave / replaceResume",
+          "fingerprint": "561b87f9e000f2fb",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/services/account.ts",
+          "symbol": "replaceCurrentResume",
+          "fingerprint": "f7ebf84284ee458d",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/api/routes/candidates.py",
+          "symbol": "replace_current_resume",
+          "fingerprint": "0b5cb5376b62f087",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "replace_resume",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/resume.py",
+          "symbol": "replace_resume_bytes",
+          "fingerprint": "b126e139a673dfe3",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "界面",
+          "action": "展示当前在档：resume_filename",
+          "data": "CandidateCurrentPublic",
+          "branch": "空则「尚未在档」"
+        },
+        {
+          "actor": "用户",
+          "action": "选文件后保存，按钮「保存中」",
+          "data": "accept .pdf/.docx/.txt",
+          "branch": "无已存 Key：403 LLM_KEY_REQUIRED「还没有百炼 Key，请先到「我的key」粘贴后再换简历。」"
+        },
+        {
+          "actor": "后端",
+          "action": "staging 解析成功才覆盖磁盘与 resume_text",
+          "data": "旧路径失败时保持不变",
+          "branch": "空文件/不支持格式/过大/抽空：400，旧简历不变。不重签发 session_token"
+        },
+        {
+          "actor": "运行验证",
+          "action": "新简历供后续考查点使用",
+          "data": "AC-051 文件替换已有页面证据",
+          "branch": "真实模型考查点对照本轮未验，见运行验证边界"
+        }
+      ]
+    },
+    {
+      "id": "feat-key-panel",
+      "page_id": "page-chat",
+      "name": "任务栏更换百炼 Key（API-017）",
+      "trigger": "头像菜单「我的key」。输入框 type=password，占位「粘贴新的百炼 API Key」，不回显旧 Key。",
+      "input": "Bearer。JSON {llm_api_key}。只接受新 Key；没有读取旧 Key 的 GET。",
+      "output": "成功清空输入并展示「已保存」（unreachable 时同时「这次没连上」）。失败旧密文不变。禁止回传新旧 Key、密文、后四位。",
+      "api_ids": [
+        "api-017"
+      ],
+      "algorithm_ids": [
+        "alg-key-update",
+        "alg-llm-probe"
+      ],
+      "module_ids": [
+        "mod-llm-probe",
+        "mod-candidate"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "frontend/src/components/KeyPanel.tsx",
+          "symbol": "onSave / updateLlmKey",
+          "fingerprint": "923b6d53223fc245",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/services/account.ts",
+          "symbol": "updateCurrentLlmKey",
+          "fingerprint": "f7ebf84284ee458d",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/api/routes/candidates.py",
+          "symbol": "update_current_llm_key",
+          "fingerprint": "0b5cb5376b62f087",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "update_llm_key",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/llm_probe.py",
+          "symbol": "probe_llm_api_key",
+          "fingerprint": "3e6fa25003fae609",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "界面",
+          "action": "打开面板即清空输入",
+          "data": "statusLabel：缺/无效 Key 显示「请更新」；已保存显示「已保存。完整 Key 不会显示。」",
+          "branch": "没有旧 Key 字符、没有后四位"
+        },
+        {
+          "actor": "用户",
+          "action": "粘贴新 Key，按钮「正在确认 Key」",
+          "data": "trim、sk- 开头",
+          "branch": "格式错：「请粘贴以 sk- 开头的百炼 Key。」"
+        },
+        {
+          "actor": "后端",
+          "action": "D-007-C 探测后加密覆盖",
+          "data": "LlmKeyUpdatePublic：has_llm_api_key、llm_key_status=saved、llm_key_probe_status",
+          "branch": "探测 401：400 LLM_KEY_INVALID，旧密文不覆盖。unreachable 仍 200 并提示这次没连上"
+        },
+        {
+          "actor": "运行验证",
+          "action": "保存成功后后续 API-006/调度/EXT-004 应用新 Key",
+          "data": "本接口是已登录换 Key 的唯一写入口",
+          "branch": "真实换 Key 后的百炼调用本轮未验（AC-052）"
+        }
+      ]
+    },
+    {
+      "id": "feat-sign-out",
+      "page_id": "page-chat",
+      "name": "退出：作废本张接续令牌（API-018 / D-008-B）",
+      "trigger": "头像菜单「退出」。",
+      "input": "当前 Bearer。无 body。",
+      "output": "只删除本张 token_hash。求职者、简历、Key、投递、对话保留。回到欢迎表单。本机其它标签再用旧 token 调 API-003 得 401。",
+      "api_ids": [
+        "api-018"
+      ],
+      "algorithm_ids": [
+        "alg-session-revoke"
+      ],
+      "module_ids": [
+        "mod-candidate"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "frontend/src/components/AccountMenu.tsx",
+          "symbol": "onExit / signOut",
+          "fingerprint": "68b4524d4909ba08",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/stores/SessionProvider.tsx",
+          "symbol": "signOut / signOutLocal",
+          "fingerprint": "952fb953356d46e6",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/services/account.ts",
+          "symbol": "revokeCurrentSession",
+          "fingerprint": "f7ebf84284ee458d",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/api/routes/sessions.py",
+          "symbol": "revoke_current_session",
+          "fingerprint": "cce7b3987e35b18b",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "revoke_current_session",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "前端",
+          "action": "先 DELETE /api/sessions/current，再清 localStorage.session_token",
+          "data": "navigate('/', {replace:true})",
+          "branch": "401 或网络失败也清本机，避免卡在已进入状态"
+        },
+        {
+          "actor": "后端",
+          "action": "按 token_hash 删除当前 session 行",
+          "data": "{revoked:true}",
+          "branch": "找不到会话 401。不删 candidates 及其它设备 token"
+        },
+        {
+          "actor": "用户",
+          "action": "同一邮箱之后仍走 API-002",
+          "data": "不必再传简历；库中已有 Key 时不必再贴",
+          "branch": "欢迎页 authenticated 时不会露出表单，因为 token 已清"
+        }
+      ]
+    },
+    {
+      "id": "feat-chat-thread",
+      "page_id": "page-chat",
+      "name": "打开对话：历史、岗位、当日题",
+      "trigger": "进入 /chat 后 useChat.loadAll；之后每 20s 按 after_id 轮询新消息（含催促与 kb_ask）。",
+      "input": "Bearer token；可选 after_id、limit。",
+      "output": "消息流、进度摘要、「查看进度」列表、今日 x/3 题。",
+      "api_ids": [
+        "api-004",
+        "api-005",
+        "api-007",
+        "api-008"
+      ],
+      "algorithm_ids": [
+        "alg-message-poll"
+      ],
+      "module_ids": [
+        "mod-candidate",
+        "mod-questions"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "frontend/src/hooks/useChat.ts",
+          "symbol": "loadAll / poll",
+          "fingerprint": "621a84f5cf4b682f",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/pages/ChatPage.tsx",
+          "symbol": "entryNotice / ChatPage",
+          "fingerprint": "a08b81716a6c7465",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/api/routes/conversations.py",
+          "symbol": "get_current_conversation / list_messages",
+          "fingerprint": "af02729369e283da",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "前端",
+          "action": "GET /conversations/current → listMessages → listApplications + getCurrentQuestionSet",
+          "data": "ConversationPublic、MessagePublic[]、ApplicationPublic[]、QuestionSetPublic",
+          "branch": "401 清 token 回欢迎页，输入草稿保留；其他失败：「现在连不上对话，请稍后再试。」"
+        },
+        {
+          "actor": "界面",
+          "action": "若 Context 有 entryNotice 则渲染 .chat-entry-notice",
+          "data": "探测 unreachable 从欢迎页写入的同一字段",
+          "branch": "只在源页渲染会丢提示；对话页必须读同一 entryNotice"
+        },
+        {
+          "actor": "前端",
+          "action": "setInterval 20000ms 拉 after_id 之后的消息",
+          "data": "POLL_MS=20000（前端常量，不在 .env）",
+          "branch": "发送中 sendingRef 为真则跳过本轮轮询"
+        },
+        {
+          "actor": "界面",
+          "action": "展示消息；questions 类型只渲染首条并列出当日三题",
+          "data": "message_type 含 chat/nudge/questions/review/counseling/jd_summary/error_notice/kb_notice/kb_ask",
+          "branch": "无岗位：「还没有记下的岗位。把已投链接发给我。」底栏「北京时间 10:00 · 下次提醒 11:00」为写死文案"
+        }
+      ]
+    },
+    {
+      "id": "feat-chat-job",
+      "page_id": "page-chat",
+      "name": "对话里记岗位、考查点与公开面经检索",
+      "trigger": "输入框发送含 http(s) 链接，或进度/状态/面试时间原话。",
+      "input": "用户 content 1–8000 字（JSON）；可选附件见发面经功能。",
+      "output": "过程 status → 逐段 delta → done；失败为 error_notice。考查点先出；检索成功/失败另有 kb_notice 或同一轮补一句。",
+      "api_ids": [
+        "api-006",
+        "ext-001",
+        "ext-002",
+        "ext-004"
+      ],
+      "algorithm_ids": [
+        "alg-orchestrator",
+        "alg-fetch-jd",
+        "alg-knowledge-search",
+        "alg-normalize-status"
+      ],
+      "module_ids": [
+        "mod-agent",
+        "mod-interview-agent",
+        "mod-nudge-agent",
+        "mod-knowledge-agent",
+        "mod-jd-fetch",
+        "mod-llm"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "frontend/src/hooks/useChat.ts",
+          "symbol": "send",
+          "fingerprint": "621a84f5cf4b682f",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/services/conversations.ts",
+          "symbol": "sendViaFetch",
+          "fingerprint": "d16e282d3f147030",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/agent.py",
+          "symbol": "AgentService._run_loop / _run_interview / _run_nudge / _run_knowledge",
+          "fingerprint": "62850275aa979184",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "b7b3d37d52ec908d"
+        },
+        {
+          "path": "backend/src/services/tools.py",
+          "symbol": "ORCHESTRATOR_DEFINITIONS / fetch_jd_tool / search_public_experiences",
+          "fingerprint": "21aed9d0f9022217",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "用户",
+          "action": "点发送或 Enter（Shift+Enter 换行）",
+          "data": "textarea content",
+          "branch": "空内容或发送中按钮禁用"
+        },
+        {
+          "actor": "前端",
+          "action": "先插入本地 user 气泡，再 fetch SSE",
+          "data": "POST JSON {content}，Accept: text/event-stream",
+          "branch": "409 对话锁：「小凹还在回复这一句，请等它说完再发。」"
+        },
+        {
+          "actor": "后端主体",
+          "action": "每条用户消息先调 llm_orchestrator_model，再按 tool_calls 分派四子 Agent",
+          "data": "call_interview_agent / call_nudge_agent / call_knowledge_agent / call_counseling_agent / get_snapshot",
+          "branch": "无 Key：_mock_from_user 关键词路由，不请求百炼"
+        },
+        {
+          "actor": "面试子 Agent",
+          "action": "task=exam_points 时 fetch_jd，读成功才总结考查点",
+          "data": "llm_interview_model；观察 {ok,text,error}",
+          "branch": "xiaohongshu.com / xhslink.com：不发起 GET，SSE error JD_FETCH_FAILED。其它公网失败同 AC-004"
+        },
+        {
+          "actor": "投递催促子 Agent",
+          "action": "task=record 写或复用投递行",
+          "data": "同一 jd_url 更新不新增",
+          "branch": "读 JD 失败不写只有失败链接的完整行"
+        },
+        {
+          "actor": "知识库子 Agent",
+          "action": "task=search 调 EXT-004 enable_search",
+          "data": "llm_knowledge_model；无 Key 或无可用正文 → 失败说明，请发文件/粘贴",
+          "branch": "不是小红书爬虫；不保证来源。考查点可先出现在回复里"
+        }
+      ]
+    },
+    {
+      "id": "feat-chat-kb-ingest",
+      "page_id": "page-chat",
+      "name": "对话里发面经文件或粘贴",
+      "trigger": "点「面经文件」选附件发送，或粘贴含「面经」且无 URL 的正文。",
+      "input": "可选 content 0–8000 字 + file；至少有非空 content 或 file。后端允许 .pdf/.docx/.txt，上限 knowledge_max_bytes。",
+      "output": "收录后对话确认；「我的面经」出现条目。读不出正文则校验失败，不假装入库。",
+      "api_ids": [
+        "api-006"
+      ],
+      "algorithm_ids": [
+        "alg-knowledge-ingest",
+        "alg-orchestrator"
+      ],
+      "module_ids": [
+        "mod-knowledge-agent",
+        "mod-knowledge-store"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "frontend/src/pages/ChatPage.tsx",
+          "symbol": "file / send",
+          "fingerprint": "a08b81716a6c7465",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "a5857a3eb8fd8f32"
+        },
+        {
+          "path": "backend/src/api/routes/conversations.py",
+          "symbol": "_read_message_payload",
+          "fingerprint": "af02729369e283da",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/agent.py",
+          "symbol": "_persist_pending_ingest / _mock_knowledge ingest",
+          "fingerprint": "62850275aa979184",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "b7b3d37d52ec908d"
+        },
+        {
+          "path": "backend/src/services/knowledge_store.py",
+          "symbol": "save_upload / ingest",
+          "fingerprint": "a669db1b94724ec6",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "0ea394930219b257"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "前端",
+          "action": "有文件则 multipart：content 可选、file 必有其一",
+          "data": "FormData；accept 写了 .pdf/.doc/.docx/.txt/.md",
+          "branch": "后端只收 .pdf/.docx/.txt；.doc/.md 会 400「面经格式不支持」"
+        },
+        {
+          "actor": "后端",
+          "action": "存原件到 upload_dir/knowledge/{candidate_id}/，抽文本",
+          "data": "空文件/超 10MB/抽空 → ValidationFailed",
+          "branch": "JSON 路径若正文含「面经」且无 URL，也当作粘贴正文"
+        },
+        {
+          "actor": "主体",
+          "action": "分派 call_knowledge_agent task=ingest",
+          "data": "ingest_user_document；相同正文则复用已有条目",
+          "branch": "无 Key 时 mock 仍会真正写库（不是编造检索结果）"
+        },
+        {
+          "actor": "界面",
+          "action": "SSE status ingest_document「正在收录面经」",
+          "data": "kb_notice 或回复里的确认句",
+          "branch": "「我的面经」页不提供上传"
+        }
+      ]
+    },
+    {
+      "id": "feat-chat-kb-ask",
+      "page_id": "page-chat",
+      "name": "已挂后面经删留询问（kb_ask）",
+      "trigger": "对话改已挂，或从表页跳转进入 /chat?kb_ask=1。用户在对话里回答删/留。",
+      "input": "kb_ask 消息；用户决定。",
+      "output": "回答前「我的面经」条目仍在（可 pending_delete）。回答后按 apply_deletion_decision 真删或 keep_all。",
+      "api_ids": [
+        "api-005",
+        "api-006"
+      ],
+      "algorithm_ids": [
+        "alg-kb-evaluate",
+        "alg-orchestrator"
+      ],
+      "module_ids": [
+        "mod-knowledge-agent",
+        "mod-knowledge-store"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "frontend/src/hooks/useChat.ts",
+          "symbol": "pendingAskId / ensureRejectedKnowledgeAsk",
+          "fingerprint": "621a84f5cf4b682f",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/knowledge_store.py",
+          "symbol": "evaluate_for_rejected / insert_kb_ask",
+          "fingerprint": "a669db1b94724ec6",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "0ea394930219b257"
+        },
+        {
+          "path": "backend/src/services/tools.py",
+          "symbol": "apply_deletion_decision / update_application",
+          "fingerprint": "21aed9d0f9022217",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/prompts/orchestrator.md",
+          "symbol": "evaluate_rejected / apply_user_decision",
+          "fingerprint": "5219817791186baf",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "后端",
+          "action": "状态变为 rejected 且该岗有相关面经 → 知识库评估后插入 message_type=kb_ask",
+          "data": "只标 pending_delete，不真删",
+          "branch": "无相关面经：不插入、不跳转。无 Key：仍插入「还没判断完…面经先留着」"
+        },
+        {
+          "actor": "前端",
+          "action": "轮询或 loadAll 看到 kb_ask",
+          "data": "API-005；Mock 下 ensureRejectedKnowledgeAsk",
+          "branch": "关页期间写入的询问，再打开对话仍能看到"
+        },
+        {
+          "actor": "用户",
+          "action": "在对话回答删或留",
+          "data": "主体应 call_knowledge_agent task=apply_user_decision",
+          "branch": "live 模型可能不调用工具：面经保持原状。手删走 UI-04，不必再问"
+        }
+      ]
+    },
+    {
+      "id": "feat-chat-questions",
+      "page_id": "page-chat",
+      "name": "出题日三题、作答与点评",
+      "trigger": "调度在出题日生成三题并插入 questions 消息；用户按题作答后主体分派面试子 Agent。",
+      "input": "等待面试岗位、简历摘要、考查点/面经摘录；用户答案。",
+      "output": "对话中的三题列表；答完后 review 消息并追加面试总结；次日出新题日。",
+      "api_ids": [
+        "api-006",
+        "api-008",
+        "ext-001"
+      ],
+      "algorithm_ids": [
+        "alg-question-day",
+        "alg-orchestrator"
+      ],
+      "module_ids": [
+        "mod-questions",
+        "mod-scheduler",
+        "mod-interview-agent",
+        "mod-tools"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/services/questions.py",
+          "symbol": "QuestionService.ensure_question_day / generate_for_candidate",
+          "fingerprint": "f93d57eb083bd46f",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "112ca22ae449ff1d"
+        },
+        {
+          "path": "backend/src/services/scheduler.py",
+          "symbol": "_process_candidate",
+          "fingerprint": "9dc91189c1edb452",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "d92d76fb29294135"
+        },
+        {
+          "path": "backend/src/services/tools.py",
+          "symbol": "save_answers / append_interview_summary",
+          "fingerprint": "21aed9d0f9022217",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/prompts/questions.md",
+          "symbol": "出题约束",
+          "fingerprint": "beb7e190f1959143",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "调度",
+          "action": "整点 10–23：ensure_question_day",
+          "data": "waiting_interview、next_question_date、今日题集",
+          "branch": "无等待面试或 next_question_date>今天或 rest_day：不出题。生成后 status 直接 in_progress"
+        },
+        {
+          "actor": "出题服务",
+          "action": "有 Key 则 llm_interview_model 出 JSON 三题，校验失败最多 2 次后规则模板",
+          "data": "temperature=llm_interview_temperature 默认 0.3；必须 3 题、含 common+role、已挂 id 禁止",
+          "branch": "无 Key 或校验失败走模板并打降级日志"
+        },
+        {
+          "actor": "用户",
+          "action": "在对话里作答",
+          "data": "mock 认「第一题/第二题/第三题/作答」；服务层也可 save_answers_from_user_text",
+          "branch": "live 模型自行决定是否 save_answers"
+        },
+        {
+          "actor": "面试子 Agent",
+          "action": "三题都有 answer → review，complete_with_review，next_question_date=完成日+1，追加 interview_summary",
+          "data": "append_interview_summary 已有手写则追加不覆盖",
+          "branch": "无 Key 时拼固定缺点建议"
+        }
+      ]
+    },
+    {
+      "id": "feat-chat-nudge",
+      "page_id": "page-chat",
+      "name": "整点催促进入对话",
+      "trigger": "后端 Asia/Shanghai 整点调度，直接调投递催促模型，不是页面按钮。打开中的对话靠 20s 轮询看到。",
+      "input": "投递进度/面试时间、未完成题、小时、counseling_active。",
+      "output": "assistant / message_type=nudge；邮件另走 SMTP。",
+      "api_ids": [
+        "api-005",
+        "ext-001",
+        "ext-003"
+      ],
+      "algorithm_ids": [
+        "alg-nudge-schedule",
+        "alg-smtp"
+      ],
+      "module_ids": [
+        "mod-scheduler",
+        "mod-nudge",
+        "mod-mail"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/services/scheduler.py",
+          "symbol": "run_tick / _process_candidate",
+          "fingerprint": "9dc91189c1edb452",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/nudge.py",
+          "symbol": "NudgeService.send_hourly / notify_llm_key_issue",
+          "fingerprint": "180537e22d7bc5df",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/hooks/useChat.ts",
+          "symbol": "poll",
+          "fingerprint": "621a84f5cf4b682f",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/pages/ChatPage.tsx",
+          "symbol": "runNudgeDemo",
+          "fingerprint": "a08b81716a6c7465",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "后端启动",
+          "action": "start_scheduler 睡到下一整点",
+          "data": "timezone 默认 Asia/Shanghai",
+          "branch": "进程不在线则不催。debug=true 才有 POST /internal/scheduler/tick"
+        },
+        {
+          "actor": "调度",
+          "action": "求职者 Key 不可用则跳过模型催促与出题",
+          "data": "candidate_llm_key_unusable 或解密失败",
+          "branch": "不调模型、不使用运营 llm_api_key、不发骂醒催促；插入 error_notice 并走 D-009-B 模板邮件"
+        },
+        {
+          "actor": "调度",
+          "action": "00:00 只作废；10–23 出题/催促；其余小时返回",
+          "data": "NUDGE_HOUR_START=10, END=23, VOID_HOUR=0；Bearer 为求职者 Key",
+          "branch": "题集 completed：设 next_question_date=今天+1 并跳过催促。counseling_active 跳过催促"
+        },
+        {
+          "actor": "催促服务",
+          "action": "按 beijing_hour_key 幂等写 chat+email 两条 nudge_logs",
+          "data": "tone_level 1–4；LLM 用求职者 Key",
+          "branch": "本整点 chat 日志已存在则整点跳过；无待办则不发。LlmKeyInvalidError 则标 invalid 并 notify_llm_key_issue"
+        },
+        {
+          "actor": "前端 Mock",
+          "action": "仅 VITE_USE_MOCK=true 显示「演示早间/晚间催促」",
+          "data": "injectMockNudge",
+          "branch": "真实模式无此按钮"
+        }
+      ]
+    },
+    {
+      "id": "feat-chat-counseling",
+      "page_id": "page-chat",
+      "name": "心理辅导与收束",
+      "trigger": "用户在对话里表达焦虑等；主体应先 call_counseling_agent。",
+      "input": "用户心情原话；工具参数 active: bool。",
+      "output": "辅导回复；页底 mood；快照 counseling_active。",
+      "api_ids": [
+        "api-006"
+      ],
+      "algorithm_ids": [
+        "alg-counseling",
+        "alg-orchestrator"
+      ],
+      "module_ids": [
+        "mod-counseling-agent",
+        "mod-tools"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/services/tools.py",
+          "symbol": "set_counseling_state",
+          "fingerprint": "21aed9d0f9022217",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/agent.py",
+          "symbol": "_run_counseling / _ensure_mood_better_dispatch",
+          "fingerprint": "62850275aa979184",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "b7b3d37d52ec908d"
+        },
+        {
+          "path": "backend/src/prompts/counseling.md",
+          "symbol": "辅导提示",
+          "fingerprint": "5d9ef0816896843d",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/hooks/useChat.ts",
+          "symbol": "onDone mood",
+          "fingerprint": "621a84f5cf4b682f",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "无 Key mock",
+          "action": "文本含焦虑类词 → call_counseling_agent(active=true)",
+          "data": "_ANXIETY_MARKERS",
+          "branch": "心情变好类词 → active=false，服务层可再 _ensure_mood_better_dispatch 接催促/题目"
+        },
+        {
+          "actor": "有 Key live",
+          "action": "主体用 llm_orchestrator_model 决定是否分派；辅导子 Agent 用 llm_counseling_model",
+          "data": "仅 set_counseling_state、get_snapshot，无写投递工具",
+          "branch": "模型可能不分派或不关标记"
+        },
+        {
+          "actor": "工具",
+          "action": "写 candidate.counseling_active；从 true→false 时 counseling_turned_off=true",
+          "data": "{counseling_active}",
+          "branch": "标记仍为 true 时调度跳过催促"
+        },
+        {
+          "actor": "前端",
+          "action": "done.snapshot.today.counseling_active 为真则 mood「正在听你说」",
+          "data": "snapshot",
+          "branch": "从真变假且上一轮是「正在听你说」→「心情慢慢回来了」"
+        }
+      ]
+    },
+    {
+      "id": "feat-chat-email-fail",
+      "page_id": "page-chat",
+      "name": "催促邮件失败仍留对话说明",
+      "trigger": "调度发催促时 SMTP 未配置或投递失败。Mock 下可点「模拟邮件失败」。",
+      "input": "smtp_* 配置是否齐全；SMTP 异常类型。",
+      "output": "对话催促正文后追加中文原因；email 日志 sent_ok=false。不回滚对话催促。",
+      "api_ids": [
+        "ext-003"
+      ],
+      "algorithm_ids": [
+        "alg-nudge-schedule",
+        "alg-smtp"
+      ],
+      "module_ids": [
+        "mod-mail",
+        "mod-nudge"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/services/mail.py",
+          "symbol": "send_nudge_email / send_llm_key_invalid_email",
+          "fingerprint": "7dd00ca8245fee93",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/nudge.py",
+          "symbol": "send_hourly / notify_llm_key_issue",
+          "fingerprint": "180537e22d7bc5df",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/.env.example",
+          "symbol": "smtp_* 与 llm_api_key 非用户流量说明",
+          "fingerprint": "df0a5b88983a5bed",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "催促服务",
+          "action": "先 send_nudge_email，再写对话",
+          "data": "同一待办正文、同一 tone_level",
+          "branch": "sent_ok=false：chat_content 追加原因；仍插入 nudge 消息"
+        },
+        {
+          "actor": "邮件模块",
+          "action": "缺 host/port/user/password/from 则不连接",
+          "data": "字段名来自 .env.example，真实值未读",
+          "branch": "「邮件发不出去：尚未配置 smtp_host、…」"
+        },
+        {
+          "actor": "Key 失效",
+          "action": "D-009-B 固定模板，不调模型",
+          "data": "主题「请更新小凹的百炼 Key」；去重键 llm_key_invalid:{beijing_date}",
+          "branch": "当日至多成功一封。未配置 SMTP 时对话 error_notice 仍在，真实发信本轮未验"
+        },
+        {
+          "actor": "前端 Mock",
+          "action": "email_fail 演示插入失败说明气泡",
+          "data": "仅 VITE_USE_MOCK",
+          "branch": "文案标明不会发真实邮件"
+        }
+      ]
+    },
+    {
+      "id": "feat-apps-table",
+      "page_id": "page-apps",
+      "name": "投递表列表、离格保存、加行、删行",
+      "trigger": "顶栏最右侧「我的投递」；格子失焦且值变化；「加一行」；行内「删除」。",
+      "input": "Bearer。可改公司/岗位/链接/投递时间/面试时间/状态/面试总结。加行字段均可空。",
+      "output": "刷新后仍是改后的值；空行可保存；删行后不再出题、不再检索，已入库面经不随删行自动删除。",
+      "api_ids": [
+        "api-007",
+        "api-009",
+        "api-010",
+        "api-011"
+      ],
+      "algorithm_ids": [
+        "alg-apps-write",
+        "alg-normalize-status"
+      ],
+      "module_ids": [
+        "mod-candidate"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "frontend/src/pages/ApplicationsPage.tsx",
+          "symbol": "saveField / onAddRow / onDelete",
+          "fingerprint": "2245d06434175e58",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "fe1c5a78d18ce31b"
+        },
+        {
+          "path": "frontend/src/services/applications.ts",
+          "symbol": "listApplications / createApplication / patchApplication / deleteApplication",
+          "fingerprint": "2dabbcac85a3224a",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/api/routes/applications.py",
+          "symbol": "list/create/update/delete",
+          "fingerprint": "308022d9fd2125cf",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "create_application / update_application / delete_application",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "202e42e9d14f3357"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "前端",
+          "action": "进入 /apps 调 GET /applications",
+          "data": "ApplicationPublic[]，列表不含 knowledge_review_pending",
+          "branch": "失败：「投递表现在读不到，请稍后再试。」"
+        },
+        {
+          "actor": "前端",
+          "action": "失焦且与快照不同才 PATCH",
+          "data": "只传变化字段；面试时间空串 → null",
+          "branch": "失败把该格恢复快照：「这一格没存上，已恢复刚才的内容。」"
+        },
+        {
+          "actor": "后端",
+          "action": "写库、归一 status、deadline 与 interview_at 北京日期同步",
+          "data": "未填 applied_at 时填当天北京日期",
+          "branch": "非空 jd_url 与另一行冲突：409「这个投递链接已经在表里…」"
+        },
+        {
+          "actor": "前端",
+          "action": "加一行 POST {}；删除 DELETE /applications/{id}",
+          "data": "空行可保存；无链接不读 JD、不出考查点",
+          "branch": "设计写加行后可后台检索：源码 API-009 不启动检索"
+        }
+      ]
+    },
+    {
+      "id": "feat-apps-rejected-jump",
+      "page_id": "page-apps",
+      "name": "表页改为已挂后回对话（D-006-A）",
+      "trigger": "投递状态失焦保存为「已挂」且本轮写入了 kb_ask。",
+      "input": "status_text 归一为 rejected；该行相关面经条数。",
+      "output": "立刻切到日常对话并马上看到询问。无相关面经则不跳转。未经同意不删面经。",
+      "api_ids": [
+        "api-010",
+        "api-005"
+      ],
+      "algorithm_ids": [
+        "alg-kb-evaluate"
+      ],
+      "module_ids": [
+        "mod-candidate",
+        "mod-knowledge-store"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "frontend/src/pages/ApplicationsPage.tsx",
+          "symbol": "knowledge_review_pending → navigate('/chat?kb_ask=1')",
+          "fingerprint": "2245d06434175e58",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "fe1c5a78d18ce31b"
+        },
+        {
+          "path": "frontend/src/hooks/useChat.ts",
+          "symbol": "location.state.knowledgeAsk",
+          "fingerprint": "621a84f5cf4b682f",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "update_application knowledge_review_pending",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "202e42e9d14f3357"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "后端",
+          "action": "status 刚变为 rejected 且 count_related_knowledge>0 则 evaluate_for_rejected",
+          "data": "ApplicationPatchPublic.knowledge_review_pending",
+          "branch": "asked=true 才为 true；无相关面经 false，不跳转"
+        },
+        {
+          "actor": "前端",
+          "action": "pending 为真则 navigate('/chat?kb_ask=1', state={knowledgeAsk, applicationId})",
+          "data": "真实模式随后 GET 消息；Mock 调 ensureRejectedKnowledgeAsk",
+          "branch": "正在改其它格子会被打断（D-006-A 已锁定方案 A）"
+        }
+      ]
+    },
+    {
+      "id": "feat-kb-browse",
+      "page_id": "page-knowledge",
+      "name": "我的面经列表与正文",
+      "trigger": "顶栏「我的面经」（在「我的投递」左侧）；点「看正文」。",
+      "input": "Bearer；可选 application_id 查询（本页未传）。",
+      "output": "列表含标题、来源、公司；点开看 body 与未删除段。空列表不是 404。",
+      "api_ids": [
+        "api-012",
+        "api-013"
+      ],
+      "algorithm_ids": [
+        "alg-knowledge-ingest"
+      ],
+      "module_ids": [
+        "mod-knowledge-store"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "frontend/src/pages/KnowledgePage.tsx",
+          "symbol": "listKnowledgeItems / onToggleOpen",
+          "fingerprint": "5bec19ed86494fd0",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "df0e8edbc1d764cc"
+        },
+        {
+          "path": "frontend/src/services/knowledge.ts",
+          "symbol": "listKnowledgeItems / getKnowledgeItem",
+          "fingerprint": "cbd265ef78a7d4b0",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "891a8ca4bee66622"
+        },
+        {
+          "path": "backend/src/api/routes/knowledge_items.py",
+          "symbol": "list_knowledge_items / get_knowledge_item",
+          "fingerprint": "365341e4f789dafb",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "1eeb2d3a3cd21c1a"
+        },
+        {
+          "path": "backend/src/models/knowledge.py",
+          "symbol": "KnowledgeItemListPublic / excerpt 200 字",
+          "fingerprint": "305cee22ad840810",
+          "checked_at": "2026-09-14"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "前端",
+          "action": "GET /knowledge-items",
+          "data": "items[]：id,title,source_type(search|upload|paste),source_url,application_id,company_name,role_title,created_at,excerpt",
+          "branch": "空数组展示「还没有收录的面经…」；失败：「面经现在读不到…」"
+        },
+        {
+          "actor": "用户",
+          "action": "点「看正文」",
+          "data": "GET /knowledge-items/{id} 含 body、segments",
+          "branch": "pending_delete 段在用户回答前仍出现在正文；界面过滤 status=deleted"
+        },
+        {
+          "actor": "后端",
+          "action": "属主校验",
+          "data": "别人的条目 403；不存在 404",
+          "branch": "检索失败不会造「已找到」行"
+        }
+      ]
+    },
+    {
+      "id": "feat-kb-delete",
+      "page_id": "page-knowledge",
+      "name": "手删一条面经",
+      "trigger": "列表「删除」再「确认删除」。",
+      "input": "knowledge_item_id。",
+      "output": "立刻从列表和后续出题摘录中消失，不必再问。",
+      "api_ids": [
+        "api-014"
+      ],
+      "algorithm_ids": [
+        "alg-kb-evaluate"
+      ],
+      "module_ids": [
+        "mod-knowledge-store"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "frontend/src/pages/KnowledgePage.tsx",
+          "symbol": "onConfirmDelete",
+          "fingerprint": "5bec19ed86494fd0",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "df0e8edbc1d764cc"
+        },
+        {
+          "path": "backend/src/api/routes/knowledge_items.py",
+          "symbol": "delete_knowledge_item",
+          "fingerprint": "365341e4f789dafb",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "1eeb2d3a3cd21c1a"
+        },
+        {
+          "path": "backend/src/services/knowledge_store.py",
+          "symbol": "delete_item",
+          "fingerprint": "a669db1b94724ec6",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "0ea394930219b257"
+        }
+      ],
+      "flow": [
+        {
+          "actor": "前端",
+          "action": "先二次确认再 DELETE",
+          "data": "{id, deleted:true}",
+          "branch": "失败：「这条没删掉，请稍后再试。」"
+        },
+        {
+          "actor": "后端",
+          "action": "硬删条目及段",
+          "data": "出题 get_knowledge_excerpts 不再使用",
+          "branch": "Agent 建议删除不走本接口，走对话 apply_deletion_decision"
+        }
+      ]
+    }
+  ],
+  "apis": [
+    {
+      "id": "api-001",
+      "name": "创建求职者（邮箱 + 简历 + 百炼 Key）",
+      "method": "POST",
+      "url": "/api/candidates",
+      "auth": "公开，无 Token",
+      "request": [
+        {
+          "name": "email",
+          "in": "form",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "resume",
+          "in": "file",
+          "type": "UploadFile",
+          "required": true
+        },
+        {
+          "name": "llm_api_key",
+          "in": "form",
+          "type": "string，trim 后须以 sk- 开头，最长 256",
+          "required": true
+        }
+      ],
+      "response": {
+        "success": "201 JSON 信封；data=SessionStartPublic：session_token、candidate{id,email,resume_filename,resume_parse_ok,has_llm_api_key,llm_key_status,created_at}、conversation_id、llm_key_probe_status=ok|unreachable。禁止回传 llm_api_key 或密文。message 默认「已进入小凹」；unreachable 时追加「这次没连上百炼…」",
+        "failure": "400 VALIDATION_ERROR（缺邮箱/简历/Key 或非 sk-）；400 LLM_KEY_INVALID（探测 401，不建档）；409 CONFLICT（邮箱已有记录）"
+      },
+      "algorithm_ids": [
+        "alg-resume-onboard",
+        "alg-llm-probe"
+      ],
+      "module_ids": [
+        "mod-candidate",
+        "mod-resume",
+        "mod-llm-probe"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/candidates.py",
+          "symbol": "create_candidate",
+          "fingerprint": "0b5cb5376b62f087",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/models/candidate.py",
+          "symbol": "SessionStartPublic / CandidatePublic",
+          "fingerprint": "f72d2ce60b4a4e5c",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "start_with_resume",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "api-002",
+      "name": "邮箱接续（可选补贴 Key）",
+      "method": "POST",
+      "url": "/api/sessions",
+      "auth": "公开",
+      "request": [
+        {
+          "name": "email",
+          "in": "json",
+          "type": "string min_length=1",
+          "required": true
+        },
+        {
+          "name": "llm_api_key",
+          "in": "json",
+          "type": "string | null，旧档无 Key 时必填",
+          "required": false
+        }
+      ],
+      "response": {
+        "success": "200；data 同 SessionStartPublic。已有 Key 时 llm_key_probe_status=null（不探测）。补贴 Key 时为 ok|unreachable。message 默认「已接上原来的简历和任务」",
+        "failure": "400 VALIDATION_ERROR；400 LLM_KEY_INVALID（补贴探测 401）；404 NOT_FOUND；409 LLM_KEY_REQUIRED（已有简历、无 Key、本次未带 Key）"
+      },
+      "algorithm_ids": [
+        "alg-session-continue",
+        "alg-llm-probe"
+      ],
+      "module_ids": [
+        "mod-candidate",
+        "mod-llm-probe"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/sessions.py",
+          "symbol": "create_session",
+          "fingerprint": "cce7b3987e35b18b",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "continue_with_email",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/models/candidate.py",
+          "symbol": "SessionCreate",
+          "fingerprint": "f72d2ce60b4a4e5c",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "api-003",
+      "name": "当前求职者摘要",
+      "method": "GET",
+      "url": "/api/candidates/current",
+      "auth": "Authorization: Bearer <session_token>",
+      "request": [],
+      "response": {
+        "success": "200；data=CandidateCurrentPublic：id,email,resume_filename,resume_parse_ok,has_llm_api_key bool、llm_key_status=missing|saved|invalid、application_count,waiting_interview_count,today{beijing_date,is_question_day,is_rest_day,question_set_status,counseling_active}。禁止任何 Key 明文、密文、指纹",
+        "failure": "401 UNAUTHORIZED"
+      },
+      "algorithm_ids": [
+        "alg-session-restore"
+      ],
+      "module_ids": [
+        "mod-candidate"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/candidates.py",
+          "symbol": "get_current_candidate_summary",
+          "fingerprint": "0b5cb5376b62f087",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/models/candidate.py",
+          "symbol": "CandidateCurrentPublic",
+          "fingerprint": "f72d2ce60b4a4e5c",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "current_summary",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "api-004",
+      "name": "当前对话",
+      "method": "GET",
+      "url": "/api/conversations/current",
+      "auth": "Bearer",
+      "request": [],
+      "response": {
+        "success": "200；data=ConversationPublic：id, candidate_id, created_at",
+        "failure": "401"
+      },
+      "algorithm_ids": [
+        "alg-message-poll"
+      ],
+      "module_ids": [
+        "mod-candidate"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/conversations.py",
+          "symbol": "get_current_conversation",
+          "fingerprint": "af02729369e283da",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "api-005",
+      "name": "拉取消息",
+      "method": "GET",
+      "url": "/api/conversations/{conversation_id}/messages",
+      "auth": "Bearer；属主校验",
+      "request": [
+        {
+          "name": "conversation_id",
+          "in": "path",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "after_id",
+          "in": "query",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "type": "int ≥1；默认 100，封顶 200",
+          "required": false
+        }
+      ],
+      "response": {
+        "success": "200；data={messages: MessagePublic[]}，字段 id,role,message_type,content,created_at。message_type 含 kb_notice、kb_ask",
+        "failure": "401；403 FORBIDDEN；404 NOT_FOUND"
+      },
+      "algorithm_ids": [
+        "alg-message-poll"
+      ],
+      "module_ids": [
+        "mod-candidate"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/conversations.py",
+          "symbol": "list_messages",
+          "fingerprint": "af02729369e283da",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/config/settings.py",
+          "symbol": "message_list_default / message_list_max",
+          "fingerprint": "900370c46f1f7e9b",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "66fc41cc1fb60969"
+        }
+      ]
+    },
+    {
+      "id": "api-006",
+      "name": "发送消息（主体分派，成功为 SSE）",
+      "method": "POST",
+      "url": "/api/conversations/{conversation_id}/messages",
+      "auth": "Bearer；对话锁",
+      "request": [
+        {
+          "name": "content",
+          "in": "json 或 form",
+          "type": "string，strip 后可空（有 file 时），原始长度 ≤8000",
+          "required": false
+        },
+        {
+          "name": "file",
+          "in": "multipart 可选",
+          "type": "UploadFile pdf/docx/txt，≤ knowledge_max_bytes",
+          "required": false
+        }
+      ],
+      "response": {
+        "success": "200 text/event-stream。status{stage,text} stage=fetch_jd|update_application|search_experiences|ingest_document|counseling|questions|review|reply；delta{text}；done{message:MessagePublic, snapshot:CandidateCurrentPublic}",
+        "failure": "400 空/超长/文件格式 JSON；409 对话忙 JSON；401/403/404 JSON。模型/JD/检索失败仍 200，以 error 事件结束：LLM_UNAVAILABLE、JD_FETCH_FAILED；检索失败多为对话说明而非单独中断"
+      },
+      "algorithm_ids": [
+        "alg-orchestrator"
+      ],
+      "module_ids": [
+        "mod-agent",
+        "mod-tools",
+        "mod-llm"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/conversations.py",
+          "symbol": "send_message",
+          "fingerprint": "af02729369e283da",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/agent.py",
+          "symbol": "stream_reply",
+          "fingerprint": "62850275aa979184",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "b7b3d37d52ec908d"
+        }
+      ]
+    },
+    {
+      "id": "api-007",
+      "name": "投递列表（对话接续 + UI-03）",
+      "method": "GET",
+      "url": "/api/applications",
+      "auth": "Bearer",
+      "request": [],
+      "response": {
+        "success": "200；data={applications: ApplicationPublic[]}：id,company_name,role_title,jd_url,exam_points,progress_text,status_text,normalized_status,applied_at,interview_at,interview_summary,deadline,updated_at。列表不带 knowledge_review_pending",
+        "failure": "401"
+      },
+      "algorithm_ids": [
+        "alg-normalize-status"
+      ],
+      "module_ids": [
+        "mod-candidate"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/applications.py",
+          "symbol": "list_applications",
+          "fingerprint": "308022d9fd2125cf",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/models/candidate.py",
+          "symbol": "ApplicationPublic",
+          "fingerprint": "f72d2ce60b4a4e5c",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "e901064df30fb9bc"
+        }
+      ]
+    },
+    {
+      "id": "api-008",
+      "name": "当日题集",
+      "method": "GET",
+      "url": "/api/question-sets/current",
+      "auth": "Bearer",
+      "request": [],
+      "response": {
+        "success": "200；data=QuestionSetPublic：id,beijing_date,status,questions[{id,kind,prompt,answer,target_application_id}],review,voided_at。无题集时 status=none、questions=[]，不是 404",
+        "failure": "401"
+      },
+      "algorithm_ids": [
+        "alg-question-day"
+      ],
+      "module_ids": [
+        "mod-questions"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/question_sets.py",
+          "symbol": "get_current_question_set",
+          "fingerprint": "fafa4294b650a7d0",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "api-009",
+      "name": "投递表加行",
+      "method": "POST",
+      "url": "/api/applications",
+      "auth": "Bearer",
+      "request": [
+        {
+          "name": "company_name",
+          "in": "json",
+          "type": "string | null",
+          "required": false
+        },
+        {
+          "name": "role_title",
+          "in": "json",
+          "type": "string | null",
+          "required": false
+        },
+        {
+          "name": "jd_url",
+          "in": "json",
+          "type": "string | null",
+          "required": false
+        },
+        {
+          "name": "applied_at",
+          "in": "json",
+          "type": "YYYY-MM-DD | null，空则当天北京日期",
+          "required": false
+        },
+        {
+          "name": "interview_at",
+          "in": "json",
+          "type": "YYYY-MM-DD 或带偏移 ISO | null",
+          "required": false
+        },
+        {
+          "name": "status_text",
+          "in": "json",
+          "type": "string | null",
+          "required": false
+        },
+        {
+          "name": "interview_summary",
+          "in": "json",
+          "type": "string | null",
+          "required": false
+        },
+        {
+          "name": "progress_text",
+          "in": "json",
+          "type": "string | null",
+          "required": false
+        }
+      ],
+      "response": {
+        "success": "201；data=ApplicationPublic。空行可保存。无链接不读 JD。",
+        "failure": "400；401；409 非空 jd_url 已存在"
+      },
+      "algorithm_ids": [
+        "alg-apps-write"
+      ],
+      "module_ids": [
+        "mod-candidate"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/applications.py",
+          "symbol": "create_application",
+          "fingerprint": "308022d9fd2125cf",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "create_application",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "202e42e9d14f3357"
+        }
+      ]
+    },
+    {
+      "id": "api-010",
+      "name": "改投递表格子",
+      "method": "PATCH",
+      "url": "/api/applications/{application_id}",
+      "auth": "Bearer；属主校验",
+      "request": [
+        {
+          "name": "application_id",
+          "in": "path",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "只传要改的字段",
+          "in": "json",
+          "type": "同 ApplicationUpdate，interview_at 可 null 清空",
+          "required": false
+        }
+      ],
+      "response": {
+        "success": "200；data=ApplicationPatchPublic（ApplicationPublic + knowledge_review_pending bool）",
+        "failure": "400；401；403；404；409 jd_url 冲突"
+      },
+      "algorithm_ids": [
+        "alg-apps-write",
+        "alg-kb-evaluate"
+      ],
+      "module_ids": [
+        "mod-candidate",
+        "mod-knowledge-store"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/applications.py",
+          "symbol": "update_application",
+          "fingerprint": "308022d9fd2125cf",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/models/candidate.py",
+          "symbol": "ApplicationPatchPublic",
+          "fingerprint": "f72d2ce60b4a4e5c",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "e901064df30fb9bc"
+        }
+      ]
+    },
+    {
+      "id": "api-011",
+      "name": "删除投递行",
+      "method": "DELETE",
+      "url": "/api/applications/{application_id}",
+      "auth": "Bearer",
+      "request": [
+        {
+          "name": "application_id",
+          "in": "path",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "response": {
+        "success": "200；data={id, deleted:true}。已入库面经不因删行自动删除。",
+        "failure": "401；403；404"
+      },
+      "algorithm_ids": [
+        "alg-apps-write"
+      ],
+      "module_ids": [
+        "mod-candidate"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/applications.py",
+          "symbol": "delete_application",
+          "fingerprint": "308022d9fd2125cf",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "api-012",
+      "name": "我的面经列表",
+      "method": "GET",
+      "url": "/api/knowledge-items",
+      "auth": "Bearer",
+      "request": [
+        {
+          "name": "application_id",
+          "in": "query",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "response": {
+        "success": "200；data={items: KnowledgeItemListPublic[]}，空数组不是 404。excerpt=正文前 200 字。不含伪造「已找到」条目。",
+        "failure": "401"
+      },
+      "algorithm_ids": [
+        "alg-knowledge-ingest"
+      ],
+      "module_ids": [
+        "mod-knowledge-store"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/knowledge_items.py",
+          "symbol": "list_knowledge_items",
+          "fingerprint": "365341e4f789dafb",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "1eeb2d3a3cd21c1a"
+        }
+      ]
+    },
+    {
+      "id": "api-013",
+      "name": "面经正文",
+      "method": "GET",
+      "url": "/api/knowledge-items/{knowledge_item_id}",
+      "auth": "Bearer；属主",
+      "request": [
+        {
+          "name": "knowledge_item_id",
+          "in": "path",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "response": {
+        "success": "200；data=KnowledgeItemPublic：列表字段 + body + segments[{id,ordinal,text,status=active|pending_delete|deleted}]",
+        "failure": "401；403；404"
+      },
+      "algorithm_ids": [
+        "alg-knowledge-ingest"
+      ],
+      "module_ids": [
+        "mod-knowledge-store"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/knowledge_items.py",
+          "symbol": "get_knowledge_item",
+          "fingerprint": "365341e4f789dafb",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "1eeb2d3a3cd21c1a"
+        }
+      ]
+    },
+    {
+      "id": "api-014",
+      "name": "用户手删面经",
+      "method": "DELETE",
+      "url": "/api/knowledge-items/{knowledge_item_id}",
+      "auth": "Bearer",
+      "request": [
+        {
+          "name": "knowledge_item_id",
+          "in": "path",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "response": {
+        "success": "200；data={id, deleted:true}。立即从列表和检索中消失，不必再问。",
+        "failure": "401；403；404"
+      },
+      "algorithm_ids": [
+        "alg-kb-evaluate"
+      ],
+      "module_ids": [
+        "mod-knowledge-store"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/knowledge_items.py",
+          "symbol": "delete_knowledge_item",
+          "fingerprint": "365341e4f789dafb",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "1eeb2d3a3cd21c1a"
+        }
+      ]
+    },
+    {
+      "id": "api-016",
+      "name": "任务栏替换简历",
+      "method": "POST",
+      "url": "/api/candidates/current/resume",
+      "auth": "Bearer；无已存 Key 时 403",
+      "request": [
+        {
+          "name": "resume",
+          "in": "file",
+          "type": "UploadFile pdf/docx/txt，≤ resume_max_bytes",
+          "required": true
+        }
+      ],
+      "response": {
+        "success": "200；data=CandidateCurrentPublic（新 resume_filename、resume_parse_ok）。message「已换成 {filename}」。不重签发 token",
+        "failure": "400 空文件/不支持格式/过大/解析失败（旧简历不变）；401；403 LLM_KEY_REQUIRED"
+      },
+      "algorithm_ids": [
+        "alg-resume-replace"
+      ],
+      "module_ids": [
+        "mod-candidate",
+        "mod-resume"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/candidates.py",
+          "symbol": "replace_current_resume",
+          "fingerprint": "0b5cb5376b62f087",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/resume.py",
+          "symbol": "replace_resume_bytes",
+          "fingerprint": "b126e139a673dfe3",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/services/account.ts",
+          "symbol": "replaceCurrentResume",
+          "fingerprint": "f7ebf84284ee458d",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "api-017",
+      "name": "任务栏更换百炼 Key",
+      "method": "PUT",
+      "url": "/api/candidates/current/llm-key",
+      "auth": "Bearer。没有读取旧 Key 的 GET",
+      "request": [
+        {
+          "name": "llm_api_key",
+          "in": "json",
+          "type": "string，sk- 开头",
+          "required": true
+        }
+      ],
+      "response": {
+        "success": "200；data={has_llm_api_key:true, llm_key_status:saved, llm_key_probe_status:ok|unreachable}。禁止回传新旧 Key、密文、后四位",
+        "failure": "400 VALIDATION_ERROR；400 LLM_KEY_INVALID（探测 401，旧 Key 不变）；401"
+      },
+      "algorithm_ids": [
+        "alg-key-update",
+        "alg-llm-probe"
+      ],
+      "module_ids": [
+        "mod-candidate",
+        "mod-llm-probe"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/candidates.py",
+          "symbol": "update_current_llm_key",
+          "fingerprint": "0b5cb5376b62f087",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/models/candidate.py",
+          "symbol": "LlmKeyUpdate / LlmKeyUpdatePublic",
+          "fingerprint": "f72d2ce60b4a4e5c",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/services/account.ts",
+          "symbol": "updateCurrentLlmKey",
+          "fingerprint": "f7ebf84284ee458d",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "api-018",
+      "name": "退出：作废本张接续令牌（D-008-B）",
+      "method": "DELETE",
+      "url": "/api/sessions/current",
+      "auth": "Bearer",
+      "request": [],
+      "response": {
+        "success": "200；data={revoked:true}。只删当前 token_hash，不删求职者档案",
+        "failure": "401（前端仍清本地，幂等退出）"
+      },
+      "algorithm_ids": [
+        "alg-session-revoke"
+      ],
+      "module_ids": [
+        "mod-candidate"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/api/routes/sessions.py",
+          "symbol": "revoke_current_session",
+          "fingerprint": "cce7b3987e35b18b",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "revoke_current_session",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/services/account.ts",
+          "symbol": "revokeCurrentSession",
+          "fingerprint": "f7ebf84284ee458d",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "ext-001",
+      "name": "百炼 Chat Completions（求职者 Key）",
+      "method": "POST",
+      "url": "{llm_base_url}/chat/completions",
+      "auth": "Authorization: Bearer {candidate_llm_api_key}。禁止填运营 .env 的 llm_api_key",
+      "request": [
+        {
+          "name": "api_key",
+          "in": "LlmClient 参数",
+          "type": "求职者 Key；未传入或空串拒绝调用，不读 settings.llm_api_key",
+          "required": true
+        },
+        {
+          "name": "model",
+          "in": "json",
+          "type": "本轮职责配置名，五套不得相同；禁止静默退回废弃 llm_model",
+          "required": true
+        },
+        {
+          "name": "messages",
+          "in": "json",
+          "type": "{role,content}[]，工具轮含 tool_calls",
+          "required": true
+        },
+        {
+          "name": "tools",
+          "in": "json",
+          "type": "OpenAI function 列表",
+          "required": false
+        },
+        {
+          "name": "temperature",
+          "in": "json",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "enable_thinking",
+          "in": "json",
+          "type": "bool，工具轮建议 false",
+          "required": false
+        },
+        {
+          "name": "stream",
+          "in": "json",
+          "type": "bool，源码固定 false",
+          "required": false
+        }
+      ],
+      "response": {
+        "success": "choices[0].message.content 或 tool_calls[]",
+        "failure": "未传入求职者 Key：LlmKeyMissingError。401/invalid_api_key：LlmKeyInvalidError，标 llm_key_status=invalid，不得改用运营 Key 重试。429 quota：LlmQuotaExceededError。其它 429/5xx 最多 llm_max_retries 次。llm_allow_mock=true 跳过 HTTP（仍不得用运营 Key 代打）。真实百炼 401 本轮未验"
+      },
+      "algorithm_ids": [
+        "alg-orchestrator"
+      ],
+      "module_ids": [
+        "mod-llm"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/services/llm_client.py",
+          "symbol": "LlmClient.chat_completions / api_key 必填",
+          "fingerprint": "501d4afe7310d0eb",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/config/settings.py",
+          "symbol": "llm_api_key 仅非求职者路径；llm_allow_mock",
+          "fingerprint": "900370c46f1f7e9b",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/.env.example",
+          "symbol": "llm_api_key 留空说明",
+          "fingerprint": "df0a5b88983a5bed",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "ext-002",
+      "name": "拉取岗位 JD",
+      "method": "GET",
+      "url": "用户给出的 http(s) 绝对 URL",
+      "auth": "无账号；User-Agent 来自配置",
+      "request": [
+        {
+          "name": "url",
+          "in": "工具参数",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "response": {
+        "success": "{ok:true,text:可读文本≤8000字,error:null}",
+        "failure": "{ok:false,text:\"\",error:中文原因}。xiaohongshu.com / xhslink.com：不发起 GET"
+      },
+      "algorithm_ids": [
+        "alg-fetch-jd"
+      ],
+      "module_ids": [
+        "mod-jd-fetch"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/services/jd_fetch.py",
+          "symbol": "fetch_jd",
+          "fingerprint": "3c1d454046cca9b0",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/knowledge_search.py",
+          "symbol": "host_is_blocked",
+          "fingerprint": "b78cd9209e986078",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "9220c7d125e1361c"
+        }
+      ]
+    },
+    {
+      "id": "ext-003",
+      "name": "SMTP 催促邮件（含 D-009-B Key 失效模板）",
+      "method": "SMTP",
+      "url": "smtp_host:smtp_port（STARTTLS 或 SSL）",
+      "auth": "smtp_user / smtp_password（真实值不读、不展示）",
+      "request": [
+        {
+          "name": "From/To/Subject/body",
+          "in": "EmailMessage",
+          "type": "string。Key 失效主题固定「请更新小凹的百炼 Key」",
+          "required": true
+        }
+      ],
+      "response": {
+        "success": "(True, \"\") SMTP 接受投递，不保证进收件箱。D-009-B 当日至多成功一封",
+        "failure": "(False, 中文原因) 不抛到调度。真实 SMTP 发信本轮未验"
+      },
+      "algorithm_ids": [
+        "alg-smtp"
+      ],
+      "module_ids": [
+        "mod-mail"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/services/mail.py",
+          "symbol": "send_nudge_email / send_llm_key_invalid_email",
+          "fingerprint": "7dd00ca8245fee93",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/.env.example",
+          "symbol": "smtp_* 占位",
+          "fingerprint": "df0a5b88983a5bed",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "ext-004",
+      "name": "公开面经检索（百炼 enable_search，不是小红书爬虫）",
+      "method": "POST",
+      "url": "{llm_base_url}/chat/completions",
+      "auth": "同 EXT-001",
+      "request": [
+        {
+          "name": "model",
+          "in": "json",
+          "type": "llm_knowledge_model",
+          "required": true
+        },
+        {
+          "name": "messages",
+          "in": "json",
+          "type": "查找「公司 岗位」已公开面试经验，不要编造，不要把小红书帖文伪造成功入库",
+          "required": true
+        },
+        {
+          "name": "enable_search",
+          "in": "json",
+          "type": "bool true",
+          "required": true
+        },
+        {
+          "name": "search_options",
+          "in": "json",
+          "type": "{forced_search:true}",
+          "required": false
+        },
+        {
+          "name": "enable_thinking",
+          "in": "json",
+          "type": "false",
+          "required": false
+        }
+      ],
+      "response": {
+        "success": "模型正文解析为 items[{title,body,source_hint}]，可核对正文才入库，最多 knowledge_search_max_items 条",
+        "failure": "无 Key、JSON 无法核对、body 空或仅「小红书上有帖」→ 失败说明并请发文件/粘贴。协议不返回搜索来源列表，无法核验是不是小红书。未实现小红书爬虫/签名/Cookie 池"
+      },
+      "algorithm_ids": [
+        "alg-knowledge-search"
+      ],
+      "module_ids": [
+        "mod-knowledge-search",
+        "mod-llm"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/services/knowledge_search.py",
+          "symbol": "KnowledgeSearchService.search_public_experiences",
+          "fingerprint": "b78cd9209e986078",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "9220c7d125e1361c"
+        },
+        {
+          "path": "backend/src/services/llm_client.py",
+          "symbol": "enable_search=True",
+          "fingerprint": "501d4afe7310d0eb",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "ba7f70c4698668e7"
+        }
+      ]
+    }
+  ],
+  "algorithms": [
+    {
+      "id": "alg-resume-onboard",
+      "subject": "邮箱+Key+简历建档",
+      "implementation_status": "源码已核对",
+      "steps": [
+        "规范化邮箱（strip、lower、正则）。",
+        "校验简历扩展名与字节上限；空文件拒绝。Key 只做 trim，须以 sk- 开头，长度 ≤256。",
+        "邮箱已存在则 409，不建第二份档案、不覆盖 Key。",
+        "保存前 D-007-C 探测：401 则 400 不建档；429/5xx/超时仍加密落库。",
+        "原件写到 upload_dir/{candidate_id}/{filename}。",
+        "按后缀抽文本。失败仍保存原件，resume_parse_ok=false。",
+        "密文写入 llm_api_key_ciphertext（secret_key 派生），llm_key_status=saved。签发 session_token（只存 hash）。响应不含 Key。"
+      ],
+      "branches": [
+        "设计建议已存在邮箱再带简历可替换：源码仍 409，须走邮箱接续。",
+        "磁盘 OSError → 500「现在存不下简历，请稍后再试。」",
+        "探测 unreachable：仍 201，message 提示这次没连上。"
+      ],
+      "selection": "同一邮箱只允许一条求职者记录。用户流量 Key 来自表单，不是运营 llm_api_key。",
+      "failures": "校验失败或探测 401 不落半条 candidate。",
+      "parameter_ids": [
+        "p-resume-max",
+        "p-resume-ext",
+        "p-upload-dir",
+        "p-session-ttl",
+        "p-secret-key",
+        "p-llm-key-prefix",
+        "p-llm-base-url"
+      ],
+      "sources": [
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "start_with_resume",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/resume.py",
+          "symbol": "parse_resume",
+          "fingerprint": "b126e139a673dfe3",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/llm_probe.py",
+          "symbol": "probe_llm_api_key",
+          "fingerprint": "3e6fa25003fae609",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "alg-session-continue",
+      "subject": "邮箱接续签发新令牌",
+      "implementation_status": "源码已核对",
+      "steps": [
+        "normalize_email，按 email 查 candidate。",
+        "没有则 404。",
+        "无密文且请求无 Key：409 LLM_KEY_REQUIRED。",
+        "无密文且带 Key：D-007-C 后加密写入再签发。",
+        "已有 Key：签发并忽略多余 Key（不探测、不覆盖）。",
+        "签发新 session，旧 token 不在本路径主动作废。"
+      ],
+      "branches": [
+        "无验证码、不重新上传。补贴 Key 的探测规则同 D-007-C。"
+      ],
+      "selection": "找到的唯一 candidate。",
+      "failures": "非法邮箱或非法 Key 走校验文案。探测 401 不写入。",
+      "parameter_ids": [
+        "p-session-ttl",
+        "p-secret-key",
+        "p-llm-key-prefix"
+      ],
+      "sources": [
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "continue_with_email",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "alg-session-restore",
+      "subject": "令牌接续与登录后欢迎重定向",
+      "implementation_status": "源码已核对",
+      "steps": [
+        "读 localStorage.session_token。",
+        "GET current；hash 比对 sessions.token_hash。",
+        "摘要含 has_llm_api_key / llm_key_status，永不解密到响应。",
+        "has_llm_api_key 为 false 时前端清 token。",
+        "authenticated 且 pathname=== '/'：App useEffect 依赖 status 与 pathname，持续 replace 到 /chat；OnboardingPage 直接 Navigate，不渲染表单。",
+        "401 清本地 token。"
+      ],
+      "branches": [
+        "axios/fetch 401 都会 notifyUnauthorized。未登录不能进 /apps、/jingyan。",
+        "Mock：offer_coming_mock_store_v1 随 opaque token 落盘摘要，扫描禁止 llm_api_key 字段。"
+      ],
+      "selection": "hash 命中且 candidate 仍在且有 Key。",
+      "failures": "过期/未知 token。过期计算用 session_ttl_days。",
+      "parameter_ids": [
+        "p-session-ttl",
+        "p-secret-key"
+      ],
+      "sources": [
+        {
+          "path": "frontend/src/App.tsx",
+          "symbol": "status + pathname",
+          "fingerprint": "91858e429e9c1031",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/pages/OnboardingPage.tsx",
+          "symbol": "Navigate to /chat",
+          "fingerprint": "60787a9624053198",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/api/deps.py",
+          "symbol": "get_current_candidate",
+          "fingerprint": "119be4b8f54291e2",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "frontend/src/mocks/session.ts",
+          "symbol": "assertNoKeyLeak",
+          "fingerprint": "dff937d19a076cbf",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "alg-llm-probe",
+      "subject": "保存路径百炼 Key 探测（D-007-C）",
+      "implementation_status": "源码已核对",
+      "steps": [
+        "只用调用方传入的求职者 Key 作 Authorization。禁止读取运营 llm_api_key。",
+        "超时用 llm_connect_timeout_seconds，httpx trust_env=False。",
+        "优先 GET {llm_base_url}/models。",
+        "若该部署 404，则一次 POST chat/completions，max_tokens=1，model=llm_orchestrator_model，messages=[{role:user,content:ping}]。",
+        "401 或 error 含 invalid_api_key → verdict=invalid。",
+        "2xx → ok。其它状态或超时/网络失败 → unreachable（不判定 Key 无效）。"
+      ],
+      "branches": [
+        "探测也计用户额度。日志只记 http_status，禁止记 Key。"
+      ],
+      "selection": "invalid 拒绝保存；unreachable 仍写入并提示这次没连上。",
+      "failures": "超时与 HTTPError 都当 unreachable。",
+      "parameter_ids": [
+        "p-llm-base-url",
+        "p-probe-timeout",
+        "p-orch-model"
+      ],
+      "sources": [
+        {
+          "path": "backend/src/services/llm_probe.py",
+          "symbol": "probe_llm_api_key",
+          "fingerprint": "3e6fa25003fae609",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "alg-resume-replace",
+      "subject": "任务栏替换简历",
+      "implementation_status": "源码已核对",
+      "steps": [
+        "属主校验；无已存 Key 则 403。",
+        "校验扩展名与大小。",
+        "写入 staging；parse_resume 成功才 replace 到目标路径。",
+        "失败清理 staging，旧 resume_path / resume_text 不变。",
+        "成功更新 filename/path/text/parse_ok=true，返回 current_summary。不重签发 token。"
+      ],
+      "branches": [
+        "解析失败 400「没有读出简历正文…」类文案；磁盘 OSError 500。"
+      ],
+      "selection": "新文本立即供后续考查点/出题读取。真实模型考查点对照未验。",
+      "failures": "失败保留旧档。",
+      "parameter_ids": [
+        "p-resume-max",
+        "p-resume-ext",
+        "p-upload-dir"
+      ],
+      "sources": [
+        {
+          "path": "backend/src/services/resume.py",
+          "symbol": "replace_resume_bytes",
+          "fingerprint": "b126e139a673dfe3",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "replace_resume",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "alg-key-update",
+      "subject": "已登录更换百炼 Key",
+      "implementation_status": "源码已核对",
+      "steps": [
+        "属主校验。格式 trim、sk-、≤256。",
+        "D-007-C 探测。",
+        "invalid：400，旧密文不覆盖。",
+        "ok/unreachable：encrypt 覆盖密文，llm_key_status=saved。",
+        "响应只有状态与 probe_status，不含 Key。"
+      ],
+      "branches": [
+        "初次见面补贴走 API-002，不走本接口。"
+      ],
+      "selection": "本接口是已登录后换 Key 的唯一写入口。后续调用应使用新 Key；真实百炼换 Key 调用未验。",
+      "failures": "空/非 sk- 400；探测 401 不覆盖。",
+      "parameter_ids": [
+        "p-llm-key-prefix",
+        "p-secret-key",
+        "p-llm-base-url"
+      ],
+      "sources": [
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "update_llm_key",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/llm_probe.py",
+          "symbol": "probe_llm_api_key",
+          "fingerprint": "3e6fa25003fae609",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "alg-session-revoke",
+      "subject": "作废本张接续令牌（D-008-B）",
+      "implementation_status": "源码已核对",
+      "steps": [
+        "从 Bearer 取明文 token，hash_session_token 后查 sessions。",
+        "找不到则 401。",
+        "删除该行。返回 {revoked:true}。",
+        "前端再清 localStorage，回到 UI-01。"
+      ],
+      "branches": [
+        "不删 candidates、简历、Key、投递、对话。其它设备其它 token 仍有效。"
+      ],
+      "selection": "只作废当前这一张。",
+      "failures": "401 时前端仍清本地。",
+      "parameter_ids": [
+        "p-secret-key"
+      ],
+      "sources": [
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "revoke_current_session",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/api/routes/sessions.py",
+          "symbol": "revoke_current_session",
+          "fingerprint": "cce7b3987e35b18b",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "alg-message-poll",
+      "subject": "历史、催促与 kb_ask 轮询",
+      "implementation_status": "源码已核对",
+      "steps": [
+        "属主校验 conversation",
+        "after_id 之后按时间取消息",
+        "limit 默认 100、最大 200"
+      ],
+      "branches": [
+        "发送中不轮询。关页期间调度/已挂询问仍写库，再打开能看到。"
+      ],
+      "selection": "created_at + id 排序合并。",
+      "failures": "对话不存在 404；别人的对话 403。",
+      "parameter_ids": [
+        "p-poll-ms",
+        "p-message-limit"
+      ],
+      "sources": [
+        {
+          "path": "frontend/src/hooks/useChat.ts",
+          "symbol": "poll",
+          "fingerprint": "621a84f5cf4b682f",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "alg-orchestrator",
+      "subject": "API-006 主体分派 + 四子 Agent 工具循环",
+      "implementation_status": "源码已核对",
+      "steps": [
+        "try_acquire_conversation；失败 409。",
+        "有文件则先存面经原件并抽文本；写入 user 消息并 commit。",
+        "无求职者密文 → SSE error LLM_KEY_MISSING；llm_key_status=invalid → LLM_KEY_INVALID。二者都不调模型、不读运营 llm_api_key。",
+        "解密求职者 Key，candidate_llm_context 包住后续循环。",
+        "系统提示 = orchestrator.md + get_snapshot JSON。",
+        "循环：llm_orchestrator_model + ORCHESTRATOR_DEFINITIONS → 执行 call_* / get_snapshot，观察以 role=tool 回传。Bearer 始终是同一把求职者 Key。",
+        "子 Agent 各用自己的模型再开 _run_role_loop。llm_allow_mock=true 时 _complete 走 _mock_from_user，仍不得用运营 Key 代打真实百炼。",
+        "无 tool_calls 则把 content 当最终回复；切片 16 字发 delta，再 done。finally 释放锁。"
+      ],
+      "branches": [
+        "LlmKeyInvalidError：mark_llm_key_invalid，对话 error_notice，无假成功回复。401 不重试、不换运营 Key。",
+        "额度 429 quota：LLM_QUOTA_EXCEEDED。其它 429/5xx 指数退避最多 llm_max_retries 次。",
+        "工具参数 JSON 非法累计 2 次：道歉，不假装记下岗位。",
+        "步数用尽：请用户发「继续」。httpx/超时：SSE error LLM_UNAVAILABLE，用户消息已落库。",
+        "last_fetch_failed：JD_FETCH_FAILED。ready_for_review：message_type=review。"
+      ],
+      "selection": "停止条件是主体不再返回 tool_calls，或达到 agent_max_steps，或两次格式错误。不是无限付费重试。",
+      "failures": "429/5xx 指数退避最多 llm_max_retries 次。客户端断开服务端仍跑完本轮。",
+      "parameter_ids": [
+        "p-agent-max-steps",
+        "p-llm-timeout",
+        "p-llm-retries",
+        "p-orch-model",
+        "p-orch-temp",
+        "p-delta-chunk"
+      ],
+      "agent": {
+        "model": "llm_orchestrator_model，模板默认 qwen-plus。Bearer 为求职者 Key。llm_allow_mock 时不请求模型。不得退回废弃 llm_model，不得回落运营 llm_api_key",
+        "prompt": "orchestrator.md + 当前快照。禁止在用户可见文本写主体/子 Agent/工具名",
+        "tools": [
+          "call_counseling_agent",
+          "call_nudge_agent",
+          "call_interview_agent",
+          "call_knowledge_agent",
+          "get_snapshot"
+        ],
+        "observation": "PluginRegistry.execute 返回观察 JSON，作为 tool 消息 content。子循环再执行各自写库工具",
+        "loop": "主体 while steps < agent_max_steps：一次 completions → 执行全部分派 → continue；无工具则 break。子 Agent 同样步数上限",
+        "stop": "无 tool_calls；步数用尽；format_errors≥2；LLM 失败；JD 失败提前 error 结束",
+        "limits": "主体温度 llm_orchestrator_temperature 默认 0.2；LLM stream=false；连接超时 10s、读超时 90s；httpx trust_env=False；enable_thinking 默认 false；api_key 空串直接 LlmKeyMissingError",
+        "result": "assistant 消息落库；SSE status/delta/done 或 error。界面仍是小凹"
+      },
+      "sources": [
+        {
+          "path": "backend/src/services/agent.py",
+          "symbol": "AgentService._run_loop Key 门禁 / _run_role_loop",
+          "fingerprint": "62850275aa979184",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/llm_client.py",
+          "symbol": "chat_completions api_key",
+          "fingerprint": "501d4afe7310d0eb",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/tools.py",
+          "symbol": "ORCHESTRATOR_DEFINITIONS",
+          "fingerprint": "21aed9d0f9022217",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/plugins/registry.py",
+          "symbol": "build_orchestrator_registry",
+          "fingerprint": "012e2fe68baf4ae4",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/prompts/orchestrator.md",
+          "symbol": "分派规则",
+          "fingerprint": "5219817791186baf",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "alg-fetch-jd",
+      "subject": "公网 JD 读取、截断与小红书拦截",
+      "implementation_status": "源码已核对",
+      "steps": [
+        "工具层先 host_is_blocked：xiaohongshu.com / xhslink.com 直接失败，不发 GET。",
+        "只允许 http/https。",
+        "解析主机 IP，拦截 private/loopback/link-local/multicast/reserved/unspecified，以及 localhost 与 metadata.google.internal。",
+        "httpx trust_env=False、follow_redirects=False，手动最多 3 次重定向且每次再校验。",
+        "HTML 去 script/style 抽文本，超过 8000 字截断。"
+      ],
+      "branches": [
+        "超时/HTTP 错/非 2xx/空文本返回中文 error。未实现无头浏览器或小红书爬虫。"
+      ],
+      "selection": "抽取后的纯文本，不是整页 HTML。",
+      "failures": "反爬导致读不到是预期路径。",
+      "parameter_ids": [
+        "p-jd-timeout",
+        "p-jd-ua"
+      ],
+      "sources": [
+        {
+          "path": "backend/src/services/jd_fetch.py",
+          "symbol": "validate_public_http_url / fetch_jd",
+          "fingerprint": "3c1d454046cca9b0",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/tools.py",
+          "symbol": "fetch_jd_tool host_is_blocked",
+          "fingerprint": "21aed9d0f9022217",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "alg-knowledge-search",
+      "subject": "EXT-004 公开面经检索与入库",
+      "implementation_status": "来源已变化待复核",
+      "steps": [
+        "公司和岗位都非空才检索；否则失败「还认不出公司和岗位」。",
+        "无 llm_api_key：不请求、不编造，按失败请用户发文件/粘贴（mocked=true）。",
+        "有 Key：POST Chat Completions，model=llm_knowledge_model，enable_search=true，search_options.forced_search=true。",
+        "解析 JSON items；body 空或仅「小红书上有帖」丢弃；最多 knowledge_search_max_items（默认 3）条。",
+        "可核对正文才 ingest source_type=search；写 knowledge_search_runs succeeded/failed；对话补 kb_notice。"
+      ],
+      "branches": [
+        "Chat Completions 不返回搜索来源列表，无法核验是不是小红书。",
+        "这不是小红书爬虫：不对 xiaohongshu.com 发 GET，无签名/Cookie 池。"
+      ],
+      "selection": "只保留有可核对正文的条目。",
+      "failures": "无可用 items → 对话说明并可改发文件/粘贴。",
+      "parameter_ids": [
+        "p-kb-model",
+        "p-kb-temp",
+        "p-kb-max-items",
+        "p-llm-timeout"
+      ],
+      "sources": [
+        {
+          "path": "backend/src/services/knowledge_search.py",
+          "symbol": "search_public_experiences / usable_items",
+          "fingerprint": "b78cd9209e986078",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "9220c7d125e1361c"
+        },
+        {
+          "path": "backend/src/services/tools.py",
+          "symbol": "search_public_experiences",
+          "fingerprint": "21aed9d0f9022217",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/prompts/knowledge_search.md",
+          "symbol": "不编造 / 不把小红书写成已入库",
+          "fingerprint": "bfdae43f0dceed96",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "alg-knowledge-ingest",
+      "subject": "用户文件/粘贴收录",
+      "implementation_status": "来源已变化待复核",
+      "steps": [
+        "校验扩展名与 knowledge_max_bytes；抽文本失败则不入库。",
+        "按空行切 segments；title 空则取正文前 40 字。",
+        "相同正文 find_item_by_body 则复用，不重复插入。"
+      ],
+      "branches": [
+        "前端 accept 比后端宽（含 .doc/.md），以后端白名单为准。"
+      ],
+      "selection": "用户可见确认句；列表 excerpt 前 200 字。",
+      "failures": "空正文「没有可收录的面经正文。」",
+      "parameter_ids": [
+        "p-kb-max-bytes",
+        "p-kb-ext"
+      ],
+      "sources": [
+        {
+          "path": "backend/src/services/knowledge_store.py",
+          "symbol": "ingest / save_upload",
+          "fingerprint": "a669db1b94724ec6",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "0ea394930219b257"
+        }
+      ]
+    },
+    {
+      "id": "alg-kb-evaluate",
+      "subject": "已挂评估、kb_ask 与用户决定",
+      "implementation_status": "来源已变化待复核",
+      "steps": [
+        "相关面经为空：asked=false，不插入询问。",
+        "有条目：llm_knowledge_model + knowledge_evaluate.md 出 keep/suggest_delete JSON。",
+        "只 mark_pending_delete，insert_kb_ask；无 Key 或解析失败仍询问且不自动删。",
+        "用户同意后 apply_deletion_decision：keep_all 或按 accepted_ids 真删。"
+      ],
+      "branches": [
+        "表页路径用 knowledge_review_pending + 前端跳转；对话路径由主体分派 evaluate_rejected。"
+      ],
+      "selection": "未经用户同意不删。手删走 API-014。",
+      "failures": "评估失败面经仍保留。",
+      "parameter_ids": [
+        "p-kb-model",
+        "p-kb-temp"
+      ],
+      "sources": [
+        {
+          "path": "backend/src/services/knowledge_store.py",
+          "symbol": "evaluate_for_rejected / insert_kb_ask",
+          "fingerprint": "a669db1b94724ec6",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "0ea394930219b257"
+        },
+        {
+          "path": "backend/src/prompts/knowledge_evaluate.md",
+          "symbol": "只标建议删除",
+          "fingerprint": "01a6dacfab320968",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "alg-apps-write",
+      "subject": "投递表加改删",
+      "implementation_status": "来源已变化待复核",
+      "steps": [
+        "属主校验。",
+        "009：空 applied_at 填当天北京日期；空行可保存。",
+        "010：只更新传入字段；interview_at 空则 deadline=null。",
+        "归一 normalized_status；非空 jd_url 去重。",
+        "011：删行；已入库面经保留。"
+      ],
+      "branches": [
+        "010 变为 rejected 且有相关面经才评估并可能跳转。API-009 不启动后台检索。"
+      ],
+      "selection": "表页写入不经 Agent；对话写入仍走工具。",
+      "failures": "格式错误 400；冲突 409。",
+      "parameter_ids": [],
+      "sources": [
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "create_application / update_application / delete_application",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "202e42e9d14f3357"
+        }
+      ]
+    },
+    {
+      "id": "alg-normalize-status",
+      "subject": "投递状态归一",
+      "implementation_status": "源码已核对",
+      "steps": [
+        "保存用户 status_text 原文",
+        "子串匹配归一 normalized_status",
+        "waiting_interview 且尚无 next_question_date 时写入出题日（当日 hour==0 则明天，否则今天）"
+      ],
+      "branches": [
+        "已挂/挂了/被拒/淘汰/offer 黄了 → rejected；等待面试/等面试/约面/一面 → waiting_interview；其余 → other"
+      ],
+      "selection": "先 rejected 再 waiting，不把 other 自动改名。",
+      "failures": "找不到岗位则观察错误「请先记录投递」。",
+      "parameter_ids": [],
+      "sources": [
+        {
+          "path": "backend/src/services/tools.py",
+          "symbol": "normalize_application_status",
+          "fingerprint": "21aed9d0f9022217",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "alg-question-day",
+      "subject": "出题日、作废、休息、完成+1",
+      "implementation_status": "来源已变化待复核",
+      "steps": [
+        "出题条件：至少一条 waiting_interview，且 next_question_date 为空或 ≤今天，且今日不是 rest_day。",
+        "生成恰好 3 题写入 QuestionSet，并插入 message_type=questions。出题模型为 llm_interview_model。",
+        "00:00：昨日 pending/in_progress → voided，next_question_date=出题日+2，中间日写 rest_day。",
+        "completed：next_question_date=完成日+1，当日 10–23 不再催。"
+      ],
+      "branches": [
+        "多岗位：waiting 按面试时间更急优先；已挂不进入出题候选。",
+        "JSON 校验：seq 必须 1,2,3；common 的 target 必须空；role 的 target 必须在 waiting 且非 rejected。"
+      ],
+      "selection": "有 Key 且 JSON 合法用模型题；否则模板。用户始终看到三道题。",
+      "failures": "出题时无对话只打日志，不抛给用户 HTTP。",
+      "parameter_ids": [
+        "p-interview-model",
+        "p-interview-temp",
+        "p-q-attempts",
+        "p-complete-gap",
+        "p-void-rest",
+        "p-timezone"
+      ],
+      "sources": [
+        {
+          "path": "backend/src/services/questions.py",
+          "symbol": "is_question_day / void_incomplete_at_midnight / generate_for_candidate",
+          "fingerprint": "f93d57eb083bd46f",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "112ca22ae449ff1d"
+        },
+        {
+          "path": "backend/src/services/scheduler.py",
+          "symbol": "_process_candidate",
+          "fingerprint": "9dc91189c1edb452",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "d92d76fb29294135"
+        }
+      ]
+    },
+    {
+      "id": "alg-nudge-schedule",
+      "subject": "整点催促语气与幂等",
+      "implementation_status": "源码已核对",
+      "steps": [
+        "hour 10–12 → tone 1；13–17 → 2；18–21 → 3；22–23 → 4。",
+        "无求职者 Key 密文或 status=invalid：不调模型、不使用运营 Key、不发骂醒催促；对话 error_notice；D-009-B 模板邮件当日至多成功一封。",
+        "拼待办：岗位进度/状态/面试时间；时间为空不以截止日加急。",
+        "有 Key 用 llm_nudge_model + 求职者 Key 生成正文，失败回落到模板。",
+        "写对话 nudge 消息；SMTP；各写 nudge_logs(chat/email)。"
+      ],
+      "branches": [
+        "休息日禁止催作答或提作废题。",
+        "counseling_active 在调度层直接 return。",
+        "调度遇到 LlmKeyInvalidError：标 invalid 并 notify_llm_key_issue。"
+      ],
+      "selection": "同一 candidate+beijing_hour_key+channel 已存在则跳过。",
+      "failures": "邮件失败不回滚对话催促。",
+      "parameter_ids": [
+        "p-timezone",
+        "p-nudge-model",
+        "p-nudge-temp",
+        "p-nudge-hours"
+      ],
+      "sources": [
+        {
+          "path": "backend/src/services/nudge.py",
+          "symbol": "tone_level_for_hour / send_hourly / notify_llm_key_issue",
+          "fingerprint": "180537e22d7bc5df",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/scheduler.py",
+          "symbol": "_process_candidate",
+          "fingerprint": "9dc91189c1edb452",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "alg-counseling",
+      "subject": "辅导标记与催促互斥",
+      "implementation_status": "来源已变化待复核",
+      "steps": [
+        "写入口：辅导子 Agent 工具 set_counseling_state(active)。心情变好时服务层也可强制关掉。",
+        "mock 用关键词；live 依赖主体是否分派。",
+        "active=false 且本轮刚关上：附加未答题或当前小时语气档催促。",
+        "调度每小时读库字段，为 true 则跳过狠催。"
+      ],
+      "branches": [
+        "主体规则：情绪与求职事项并存时先辅导，本轮不得骂醒催促。",
+        "live 模型可能不分派：标记不变。"
+      ],
+      "selection": "以数据库 counseling_active 为准。",
+      "failures": "未调用工具则标记不变。",
+      "parameter_ids": [
+        "p-counseling-model",
+        "p-counseling-temp"
+      ],
+      "sources": [
+        {
+          "path": "backend/src/services/tools.py",
+          "symbol": "set_counseling_state",
+          "fingerprint": "21aed9d0f9022217",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/agent.py",
+          "symbol": "_run_counseling / _followup_after_counseling",
+          "fingerprint": "62850275aa979184",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "b7b3d37d52ec908d"
+        }
+      ]
+    },
+    {
+      "id": "alg-smtp",
+      "subject": "SMTP 降级与 D-009-B Key 失效模板",
+      "implementation_status": "源码已核对",
+      "steps": [
+        "检查 smtp_host/port/user/password/from 均非空。",
+        "smtp_use_tls true：SMTP + STARTTLS；false：SMTP_SSL。",
+        "login + send_message；失败映射中文。",
+        "D-009-B：不调模型。主题「请更新小凹的百炼 Key」。正文「你的百炼 Key 已失效，今日催促和出题发不出来，请到小凹「我的key」更新。」去重键 llm_key_invalid:{beijing_date}。"
+      ],
+      "branches": [
+        "缺项不连服务器。认证/连接/拒收/其它 SMTPException 分句。",
+        "当日已有 sent_ok=true 的 email 日志则跳过。失败时对话 error_notice 不回滚，下一整点可再试发。",
+        "源码与模板已核对；真实 SMTP 发信本轮未验。"
+      ],
+      "selection": "不重试付费通道；一次失败即返回。",
+      "failures": "返回 (False, reason)，调度继续写对话。",
+      "parameter_ids": [
+        "p-smtp-tls"
+      ],
+      "sources": [
+        {
+          "path": "backend/src/services/mail.py",
+          "symbol": "send_nudge_email / send_llm_key_invalid_email",
+          "fingerprint": "7dd00ca8245fee93",
+          "checked_at": "2026-09-14"
+        },
+        {
+          "path": "backend/src/services/nudge.py",
+          "symbol": "notify_llm_key_issue",
+          "fingerprint": "180537e22d7bc5df",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "id": "mod-agent",
+      "name": "AgentService（主体）",
+      "kind": "Agent循环",
+      "responsibility": "对话锁、orchestrator.md、分派四子 Agent、SSE。不是长驻独立进程。用户不可见多个身份。",
+      "input": "candidate、conversation、user_text、可选文件",
+      "output": "SSE 事件与落库消息",
+      "algorithm_ids": [
+        "alg-orchestrator"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/services/agent.py",
+          "symbol": "AgentService",
+          "fingerprint": "62850275aa979184",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "b7b3d37d52ec908d"
+        }
+      ]
+    },
+    {
+      "id": "mod-nudge-agent",
+      "name": "投递催促子 Agent",
+      "kind": "Agent循环",
+      "responsibility": "llm_nudge_model。工具：record_application、update_application、get_snapshot。整点催促由调度直接调 NudgeService，不经本循环。",
+      "input": "task=record|update|resume_after_counseling",
+      "output": "写库结果 + 可选催促短文",
+      "algorithm_ids": [
+        "alg-orchestrator",
+        "alg-normalize-status"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/services/agent.py",
+          "symbol": "_run_nudge",
+          "fingerprint": "62850275aa979184",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "b7b3d37d52ec908d"
+        }
+      ]
+    },
+    {
+      "id": "mod-interview-agent",
+      "name": "面试子 Agent",
+      "kind": "Agent循环",
+      "responsibility": "llm_interview_model。工具：fetch_jd、save_exam_points、get_knowledge_excerpts、save_answers、append_interview_summary、get_snapshot。",
+      "input": "task=exam_points|coach|review",
+      "output": "考查点/讲解/点评",
+      "algorithm_ids": [
+        "alg-orchestrator",
+        "alg-fetch-jd",
+        "alg-question-day"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/services/agent.py",
+          "symbol": "_run_interview",
+          "fingerprint": "62850275aa979184",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "b7b3d37d52ec908d"
+        }
+      ]
+    },
+    {
+      "id": "mod-knowledge-agent",
+      "name": "知识库子 Agent",
+      "kind": "Agent循环",
+      "responsibility": "llm_knowledge_model。工具：search_public_experiences、ingest_user_document、evaluate_items_for_rejected_role、apply_deletion_decision、get_snapshot。",
+      "input": "task=search|ingest|evaluate_rejected|apply_user_decision",
+      "output": "入库/失败说明/询问稿/已执行删除",
+      "algorithm_ids": [
+        "alg-knowledge-search",
+        "alg-knowledge-ingest",
+        "alg-kb-evaluate"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/services/agent.py",
+          "symbol": "_run_knowledge",
+          "fingerprint": "62850275aa979184",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "b7b3d37d52ec908d"
+        }
+      ]
+    },
+    {
+      "id": "mod-counseling-agent",
+      "name": "心理辅导子 Agent",
+      "kind": "Agent循环",
+      "responsibility": "llm_counseling_model。仅 set_counseling_state、get_snapshot，无写投递/催促工具。",
+      "input": "user_text、可选 active",
+      "output": "辅导回复与标记",
+      "algorithm_ids": [
+        "alg-counseling"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/services/agent.py",
+          "symbol": "_run_counseling",
+          "fingerprint": "62850275aa979184",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "b7b3d37d52ec908d"
+        }
+      ]
+    },
+    {
+      "id": "mod-tools",
+      "name": "ToolExecutor",
+      "kind": "Agent工具",
+      "responsibility": "写库/读库工具。普通函数调用不是工具；调度出题不走这些工具。",
+      "input": "工具名 + JSON 参数",
+      "output": "JSON 观察字符串",
+      "algorithm_ids": [
+        "alg-orchestrator",
+        "alg-normalize-status",
+        "alg-counseling"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/services/tools.py",
+          "symbol": "TOOL_DEFINITIONS / ORCHESTRATOR_DEFINITIONS",
+          "fingerprint": "21aed9d0f9022217",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "mod-llm",
+      "name": "LlmClient",
+      "kind": "外部服务",
+      "responsibility": "httpx POST 百炼兼容 chat/completions。trust_env=False。api_key 参数必填（求职者 Key）。禁止读取 settings.llm_api_key，禁止 dashscope SDK。",
+      "input": "api_key、messages、model、可选 tools/temperature/enable_search/candidate_id",
+      "output": "响应 JSON 或 LlmKeyMissing/Invalid/Quota/Unavailable",
+      "algorithm_ids": [
+        "alg-orchestrator",
+        "alg-knowledge-search"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/services/llm_client.py",
+          "symbol": "LlmClient.chat_completions",
+          "fingerprint": "501d4afe7310d0eb",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "mod-llm-probe",
+      "name": "probe_llm_api_key（D-007-C）",
+      "kind": "外部服务",
+      "responsibility": "保存 Key 前探活。只用传入的求职者 Key。禁止运营 llm_api_key。",
+      "input": "用户刚提交的 Key",
+      "output": "verdict ok|invalid|unreachable",
+      "algorithm_ids": [
+        "alg-llm-probe"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/services/llm_probe.py",
+          "symbol": "probe_llm_api_key",
+          "fingerprint": "3e6fa25003fae609",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "mod-jd-fetch",
+      "name": "fetch_jd",
+      "kind": "外部服务",
+      "responsibility": "对用户 URL 做公网 GET 与文本抽取。小红书主机在工具层拦截。",
+      "input": "url",
+      "output": "{ok,text,error}",
+      "algorithm_ids": [
+        "alg-fetch-jd"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/services/jd_fetch.py",
+          "symbol": "fetch_jd",
+          "fingerprint": "3c1d454046cca9b0",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "mod-knowledge-search",
+      "name": "KnowledgeSearchService",
+      "kind": "外部服务",
+      "responsibility": "EXT-004 enable_search。不是小红书爬虫。",
+      "input": "company_name、role_title、prompt",
+      "output": "{ok,items,fail_reason,mocked}",
+      "algorithm_ids": [
+        "alg-knowledge-search"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/services/knowledge_search.py",
+          "symbol": "KnowledgeSearchService",
+          "fingerprint": "b78cd9209e986078",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "9220c7d125e1361c"
+        }
+      ]
+    },
+    {
+      "id": "mod-knowledge-store",
+      "name": "KnowledgeStore",
+      "kind": "普通函数",
+      "responsibility": "面经落盘、切片、列表/正文/手删、已挂评估与 kb_ask。",
+      "input": "candidate、文件或正文、application_id",
+      "output": "KnowledgeItem 公开 DTO / kb_ask 消息",
+      "algorithm_ids": [
+        "alg-knowledge-ingest",
+        "alg-kb-evaluate"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/services/knowledge_store.py",
+          "symbol": "KnowledgeStore",
+          "fingerprint": "a669db1b94724ec6",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "0ea394930219b257"
+        }
+      ]
+    },
+    {
+      "id": "mod-scheduler",
+      "name": "北京时间整点调度",
+      "kind": "普通函数",
+      "responsibility": "固定流水线：Key 不可用则 D-009-B；否则作废/出题/催促。不是 Agent。催促直接调投递催促模型，Bearer 为求职者 Key。",
+      "input": "上海时区当前整点",
+      "output": "{processed, hour}",
+      "algorithm_ids": [
+        "alg-question-day",
+        "alg-nudge-schedule"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/services/scheduler.py",
+          "symbol": "run_tick / _process_candidate",
+          "fingerprint": "9dc91189c1edb452",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "mod-questions",
+      "name": "QuestionService",
+      "kind": "普通函数",
+      "responsibility": "出题、作废、当日题集读取。可选一次无 tools 的面试模型 JSON 调用。",
+      "input": "candidate、waiting 岗位",
+      "output": "QuestionSet 与 questions 消息",
+      "algorithm_ids": [
+        "alg-question-day"
+      ],
+      "implementation_status": "来源已变化待复核",
+      "sources": [
+        {
+          "path": "backend/src/services/questions.py",
+          "symbol": "QuestionService",
+          "fingerprint": "f93d57eb083bd46f",
+          "checked_at": "2026-09-14",
+          "previous_fingerprint": "112ca22ae449ff1d"
+        }
+      ]
+    },
+    {
+      "id": "mod-nudge",
+      "name": "NudgeService",
+      "kind": "普通函数",
+      "responsibility": "催促文案、对话写入、调用 SMTP、幂等日志。可选无 tools 的投递催促模型。",
+      "input": "candidate、now、today_set",
+      "output": "nudge 消息与日志",
+      "algorithm_ids": [
+        "alg-nudge-schedule"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/services/nudge.py",
+          "symbol": "NudgeService",
+          "fingerprint": "180537e22d7bc5df",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "mod-mail",
+      "name": "send_nudge_email",
+      "kind": "外部服务",
+      "responsibility": "用户 SMTP 发催促与 D-009-B 固定模板。未配置不假装成功。真实发信本轮未验。",
+      "input": "to_email, subject, body",
+      "output": "(sent_ok, error_text)",
+      "algorithm_ids": [
+        "alg-smtp"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/services/mail.py",
+          "symbol": "send_nudge_email / send_llm_key_invalid_email",
+          "fingerprint": "7dd00ca8245fee93",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "mod-resume",
+      "name": "简历保存与解析",
+      "kind": "普通函数",
+      "responsibility": "白名单类型、大小、落盘、抽文本、staging 替换。面经抽文本复用同一解析。",
+      "input": "filename, bytes",
+      "output": "(resume_text, parse_ok)",
+      "algorithm_ids": [
+        "alg-resume-onboard",
+        "alg-resume-replace"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/services/resume.py",
+          "symbol": "save_resume_bytes / parse_resume / replace_resume_bytes",
+          "fingerprint": "b126e139a673dfe3",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    },
+    {
+      "id": "mod-candidate",
+      "name": "CandidateService",
+      "kind": "普通函数",
+      "responsibility": "建档（含 Key）、接续、摘要、替换简历、更换 Key、作废当前 token、投递表 API-007/009–011。",
+      "input": "email/resume/llm_api_key 或 token 或表字段",
+      "output": "公开 DTO，永不含 Key 明文",
+      "algorithm_ids": [
+        "alg-resume-onboard",
+        "alg-session-continue",
+        "alg-resume-replace",
+        "alg-key-update",
+        "alg-session-revoke",
+        "alg-apps-write"
+      ],
+      "implementation_status": "源码已核对",
+      "sources": [
+        {
+          "path": "backend/src/services/candidate.py",
+          "symbol": "CandidateService",
+          "fingerprint": "4a6d7d11a13e587f",
+          "checked_at": "2026-09-14"
+        }
+      ]
+    }
+  ],
+  "parameters": [
+    {
+      "id": "p-resume-max",
+      "key": "resume_max_bytes",
+      "value": "10485760",
+      "value_kind": "源码默认值 / .env.example",
+      "location": "backend/src/config/settings.py；backend/.env.example；前端 utils/resume.ts 同步 10MB",
+      "impact": "超过则不能建档。未读取真实 .env。"
+    },
+    {
+      "id": "p-resume-ext",
+      "key": "resume_allowed_extensions",
+      "value": "[\".pdf\",\".docx\",\".txt\"]",
+      "value_kind": "源码默认值（未出现在 .env.example）",
+      "location": "settings.py；前端 ALLOWED_EXTENSIONS",
+      "impact": "其它类型 400。"
+    },
+    {
+      "id": "p-upload-dir",
+      "key": "upload_dir",
+      "value": "data/uploads",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py / .env.example",
+      "impact": "简历原件目录，相对 backend/。面经在其下 knowledge/。"
+    },
+    {
+      "id": "p-session-ttl",
+      "key": "session_ttl_days",
+      "value": "30",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py / .env.example",
+      "impact": "令牌过期后天数。"
+    },
+    {
+      "id": "p-secret-key",
+      "key": "secret_key",
+      "value": "（模板占位，真实值不展示）",
+      "value_kind": "配置模板必填",
+      "location": "backend/.env.example 字段名",
+      "impact": "会话哈希盐兼求职者 Key 加密派生。本页不展示真实密钥。"
+    },
+    {
+      "id": "p-poll-ms",
+      "key": "POLL_MS",
+      "value": "20000",
+      "value_kind": "源码默认值",
+      "location": "frontend/src/hooks/useChat.ts",
+      "impact": "催促/kb_ask 在已打开页面最多延迟约 20 秒。"
+    },
+    {
+      "id": "p-message-limit",
+      "key": "message_list_default / max",
+      "value": "100 / 200",
+      "value_kind": "源码默认值（未写入 .env.example）",
+      "location": "settings.py",
+      "impact": "历史分页。"
+    },
+    {
+      "id": "p-agent-max-steps",
+      "key": "agent_max_steps",
+      "value": "8",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py / .env.example",
+      "impact": "主体与每个子 Agent 各自循环上限。"
+    },
+    {
+      "id": "p-llm-timeout",
+      "key": "llm_timeout_seconds / llm_connect_timeout_seconds",
+      "value": "90 / 10",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py / .env.example",
+      "impact": "百炼超时。T-011 时读超时曾为 60。"
+    },
+    {
+      "id": "p-llm-retries",
+      "key": "llm_max_retries",
+      "value": "2",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py",
+      "impact": "仅 429/5xx 重试。"
+    },
+    {
+      "id": "p-orch-model",
+      "key": "llm_orchestrator_model",
+      "value": "qwen-plus",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py / .env.example",
+      "impact": "每条用户消息先调主体。五套必须互不相同，缺一启动失败。旧 llm_model 已废弃。"
+    },
+    {
+      "id": "p-nudge-model",
+      "key": "llm_nudge_model",
+      "value": "qwen-flash",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py / .env.example",
+      "impact": "写表子循环与整点催促文案。"
+    },
+    {
+      "id": "p-interview-model",
+      "key": "llm_interview_model",
+      "value": "qwen-max",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py / .env.example",
+      "impact": "考查点、三题 JSON、点评。"
+    },
+    {
+      "id": "p-kb-model",
+      "key": "llm_knowledge_model",
+      "value": "qwen-plus-latest",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py / .env.example",
+      "impact": "检索 enable_search、收录整理、已挂评估。须支持联网搜索参数。"
+    },
+    {
+      "id": "p-counseling-model",
+      "key": "llm_counseling_model",
+      "value": "qwen-turbo",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py / .env.example",
+      "impact": "心理辅导子循环。"
+    },
+    {
+      "id": "p-orch-temp",
+      "key": "llm_orchestrator_temperature",
+      "value": "0.2",
+      "value_kind": "源码默认值（未写入 .env.example 字段表，仅 settings）",
+      "location": "settings.py",
+      "impact": "主体分派温度。"
+    },
+    {
+      "id": "p-nudge-temp",
+      "key": "llm_nudge_temperature",
+      "value": "0.7",
+      "value_kind": "源码默认值",
+      "location": "settings.py；nudge.py 使用该配置",
+      "impact": "催促与写表子循环温度。原 NUDGE_TEMPERATURE 常量已改为配置。"
+    },
+    {
+      "id": "p-interview-temp",
+      "key": "llm_interview_temperature",
+      "value": "0.3",
+      "value_kind": "源码默认值",
+      "location": "settings.py；questions.py 出题使用该配置",
+      "impact": "面试子循环与出题。T-011 出题常量曾为 0.4。"
+    },
+    {
+      "id": "p-kb-temp",
+      "key": "llm_knowledge_temperature",
+      "value": "0.2",
+      "value_kind": "源码默认值",
+      "location": "settings.py",
+      "impact": "检索与已挂评估。"
+    },
+    {
+      "id": "p-counseling-temp",
+      "key": "llm_counseling_temperature",
+      "value": "0.6",
+      "value_kind": "源码默认值",
+      "location": "settings.py",
+      "impact": "辅导子循环。"
+    },
+    {
+      "id": "p-delta-chunk",
+      "key": "_DELTA_CHUNK_CHARS",
+      "value": "16",
+      "value_kind": "源码常量",
+      "location": "agent.py",
+      "impact": "SSE 伪流式切片长度。"
+    },
+    {
+      "id": "p-jd-timeout",
+      "key": "jd_fetch_timeout_seconds",
+      "value": "15",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py",
+      "impact": "拉 JD 超时秒。"
+    },
+    {
+      "id": "p-jd-ua",
+      "key": "jd_fetch_user_agent",
+      "value": "offer_coming/1.0",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py",
+      "impact": "JD GET Header。"
+    },
+    {
+      "id": "p-kb-max-bytes",
+      "key": "knowledge_max_bytes",
+      "value": "10485760",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py / .env.example",
+      "impact": "对话面经文件上限。"
+    },
+    {
+      "id": "p-kb-ext",
+      "key": "knowledge_allowed_extensions",
+      "value": "[\".pdf\",\".docx\",\".txt\",\".md\"]",
+      "value_kind": "源码默认值（未出现在 .env.example）",
+      "location": "settings.py",
+      "impact": "settings 默认含 .md。面经页上传路径本轮标待复核。未读取真实 .env。"
+    },
+    {
+      "id": "p-kb-max-items",
+      "key": "knowledge_search_max_items",
+      "value": "3",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py / .env.example",
+      "impact": "单岗最多入库检索条数。"
+    },
+    {
+      "id": "p-q-attempts",
+      "key": "FORMAT_ATTEMPTS",
+      "value": "2",
+      "value_kind": "源码常量",
+      "location": "questions.py",
+      "impact": "出题 JSON 最多两次。"
+    },
+    {
+      "id": "p-complete-gap",
+      "key": "COMPLETE_GAP_DAYS",
+      "value": "1",
+      "value_kind": "源码常量",
+      "location": "questions.py",
+      "impact": "答完次日出新题。"
+    },
+    {
+      "id": "p-void-rest",
+      "key": "VOID_REST_DAYS",
+      "value": "2",
+      "value_kind": "源码常量",
+      "location": "questions.py",
+      "impact": "未完成作废后隔一天休息再出题。"
+    },
+    {
+      "id": "p-timezone",
+      "key": "timezone",
+      "value": "Asia/Shanghai",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py",
+      "impact": "业务日与整点。"
+    },
+    {
+      "id": "p-nudge-hours",
+      "key": "NUDGE_HOUR_START/END",
+      "value": "10–23",
+      "value_kind": "源码常量",
+      "location": "scheduler.py",
+      "impact": "催促窗口；00:00 只作废。"
+    },
+    {
+      "id": "p-smtp-tls",
+      "key": "smtp_use_tls",
+      "value": "true",
+      "value_kind": "源码默认值 / 模板",
+      "location": ".env.example",
+      "impact": "true=STARTTLS，false=SSL。host/port/user/password/from 模板为空。"
+    },
+    {
+      "id": "p-llm-api-key",
+      "key": "llm_api_key",
+      "value": "（模板留空，真实值不展示）",
+      "value_kind": "配置模板；非用户流量",
+      "location": "settings.py 默认空串；backend/.env.example 注释：仅非求职者路径/探活脚本",
+      "impact": "禁止作为求职者对话/出题/催促/检索/Key 探测的 Bearer，不给求职者代付。LlmClient 用户流量不得读取此字段。保留以免旧 .env 缺字段启动失败。"
+    },
+    {
+      "id": "p-llm-allow-mock",
+      "key": "llm_allow_mock",
+      "value": "false",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py / .env.example",
+      "impact": "true 时跳过百炼 HTTP 走 Mock。Mock 仍不得用运营 Key 代打，也不得标真实 AC 通过。"
+    },
+    {
+      "id": "p-llm-base-url",
+      "key": "llm_base_url",
+      "value": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "value_kind": "源码默认值 / 模板",
+      "location": "settings.py / .env.example",
+      "impact": "运营配置的百炼兼容 BASE。用户只贴 Key，不填模型名或 Base URL。"
+    },
+    {
+      "id": "p-llm-key-prefix",
+      "key": "Key 格式",
+      "value": "sk- 开头，最长 256",
+      "value_kind": "源码常量",
+      "location": "candidate.py _LLM_API_KEY_PREFIX / _LLM_API_KEY_MAX_LEN；前端 utils/llmKey.ts",
+      "impact": "不符合则 400，不探测、不保存。"
+    },
+    {
+      "id": "p-probe-timeout",
+      "key": "探测超时",
+      "value": "与 llm_connect_timeout_seconds 相同，默认 10 秒",
+      "value_kind": "源码默认值",
+      "location": "llm_probe.py 使用 connect timeout 作为读/连超时",
+      "impact": "超时视为 unreachable，仍可建档/换 Key 并提示这次没连上。"
+    }
+  ],
+  "design_vs_source": [
+    "设计：已存在邮箱再次带简历可替换。源码：一律 409，需走邮箱接续；也不在 API-001 覆盖 Key。",
+    "设计：表页加行后若公司岗位可识别则后台启动检索。源码：API-009 只写行，不启动检索；检索只在对话主体分派 search 后发生。",
+    "设计：考查点独立温度调用。源码：面试子 Agent task=exam_points，温度 llm_interview_temperature=0.3。",
+    "设计：SSE 逐字。源码：模型非流式完成后按 16 字切片。",
+    "设计示例题集 pending。源码生成后即为 in_progress。",
+    "T-022 写面经页没有上传。当前源码 KnowledgePage 有「上传面经」，后端 POST /api/knowledge-items。本轮只刷新 Key/头像，该路径标「来源已变化待复核」，不把上传写成已重新核对。",
+    "settings.knowledge_allowed_extensions 现含 .md；前端 accept 仍含 .doc/.md。面经上传白名单本轮未重新跑通。",
+    "小红书：设计与源码均禁止爬取。EXT-004 是百炼 Chat Completions + enable_search，不是小红书爬虫。",
+    "旧字段 llm_model 已废弃；五套模型必须互不相同，否则启动失败。",
+    "运营 llm_api_key 不是用户流量开关。无求职者 Key 时拒绝调用，不回落运营 Key。llm_allow_mock 才跳过 HTTP。",
+    "T-011 历史：读超时曾为 60、出题温度常量曾为 0.4；T-022 已改为 90 / 配置 0.3。本轮保留该记录，不重开 T-011/T-022。"
+  ],
+  "refresh": {
+    "map_path": "docs/project-map.json",
+    "html_path": "docs/project-console.html",
+    "rule": "机器可提取字段可更新后重新打开页面。人工归纳的算法若 fingerprint 变化，必须先标「来源已变化待复核」，定向重读后再改回「源码已核对」并更新指纹。禁止只改 generated_at 冒充已重新核对。T-011 / T-022 产物路径沿用，本任务只刷新导航内容，不改业务代码或原任务状态。"
+  },
+  "runtime_verification_boundaries": [
+    {
+      "id": "AC-051",
+      "item": "考查点对照（真实模型）",
+      "status": "本轮未验",
+      "note": "任务栏换简历的文件路径已按源码核对；用真实模型核对新简历考查点未做，不得写成已核对通过。"
+    },
+    {
+      "id": "AC-052",
+      "item": "真实换 Key 后的百炼调用",
+      "status": "本轮未验",
+      "note": "面板不回显、PUT 契约已按源码核对；换 Key 后真实 Authorization 未打百炼。"
+    },
+    {
+      "id": "AC-054",
+      "item": "真实百炼 401",
+      "status": "本轮未验",
+      "note": "注入 invalid 与 httpx stub 401 的源码路径已核对；真实百炼 401 未做。"
+    },
+    {
+      "id": "D-009-B",
+      "item": "真实 SMTP 发信",
+      "status": "本轮未验",
+      "note": "固定模板、去重键与未配置降级已按源码核对；未连接真实 SMTP 发信。"
+    }
+  ]
+}

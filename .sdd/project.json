@@ -1,0 +1,11 @@
+{
+  "id": "offer_coming",
+  "name": "面试陪伴Agent",
+  "project_type": "web",
+  "source": "new",
+  "repo_url": "git@github.com:lwt20000321-cmd/offer_coming.git",
+  "specification": "default",
+  "created_at": "2026-09-13 13:40:17",
+  "last_active": "2026-09-13 13:40:17",
+  "harness_version": "V7_2"
+}
