@@ -1,3 +1,5 @@
+from collections.abc import AsyncIterator
+
 from fastapi import Depends, File, Query, UploadFile
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -37,9 +39,16 @@ async def upload_knowledge_item(
 ) -> JSONResponse:
     if file is None:
         raise ValidationFailed("请选择要上传的面经文件。")
-    content = await file.read()
+
+    async def chunks() -> AsyncIterator[bytes]:
+        while True:
+            piece = await file.read(1024 * 1024)
+            if not piece:
+                break
+            yield piece
+
     service = KnowledgeStore(db)
-    item = await service.ingest_upload_file(candidate, file.filename, content)
+    item = await service.ingest_upload_file(candidate, file.filename, chunks=chunks())
     body = success_response(data=item.model_dump(mode="json"), message="ok")
     return JSONResponse(status_code=201, content=jsonable_encoder(body))
 

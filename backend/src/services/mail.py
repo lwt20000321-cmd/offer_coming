@@ -22,9 +22,12 @@ LLM_KEY_INVALID_EMAIL_BODY = (
 LLM_KEY_INVALID_DEDUP_PREFIX = "llm_key_invalid:"
 
 _AUTH_FAIL = "邮件没发出去：认证失败。"
+_AUTH_NO_PERMISSION = "邮件没发出去：认证失败。发件邮箱未开通 SMTP 或授权码无效。"
 _CONNECT_FAIL = "邮件没发出去：连接失败。"
 _REJECT_FAIL = "邮件没发出去：收件被拒绝。"
 _GENERIC_FAIL = "邮件没发出去：发送过程出错。"
+_SMTP_TIMEOUT_SECONDS = 20
+_NETEASE_HOST_SUFFIXES = ("163.com", "126.com", "yeah.net")
 
 _CONNECT_ERRORS = (
     smtplib.SMTPConnectError,
@@ -72,20 +75,42 @@ def make_email_nudge_log(
     )
 
 
-def _deliver(settings: AppSettings, message: EmailMessage) -> None:
+def _is_netease_host(host: str) -> bool:
+    lowered = host.lower()
+    return any(lowered == suffix or lowered.endswith("." + suffix) for suffix in _NETEASE_HOST_SUFFIXES)
+
+
+def _smtp_credentials(settings: AppSettings) -> tuple[str, str, str]:
     host = settings.smtp_host.strip()
+    user = settings.smtp_user.strip()
+    password = (settings.smtp_password or "").strip()
+    if _is_netease_host(host):
+        user = user.lower()
+    return host, user, password
+
+
+def _deliver(settings: AppSettings, message: EmailMessage) -> None:
+    host, user, password = _smtp_credentials(settings)
     port = settings.smtp_port
     if port is None:
         raise OSError("smtp_port missing")
     use_tls = bool(settings.smtp_use_tls)
-    client_cls = smtplib.SMTP if use_tls else smtplib.SMTP_SSL
-    client = client_cls(host, port)
+    context = ssl.create_default_context()
+    if use_tls:
+        client = smtplib.SMTP(host, port, timeout=_SMTP_TIMEOUT_SECONDS)
+    else:
+        client = smtplib.SMTP_SSL(
+            host, port, timeout=_SMTP_TIMEOUT_SECONDS, context=context
+        )
     try:
+        client.ehlo()
         if use_tls:
+            client.starttls(context=context)
             client.ehlo()
-            client.starttls()
-            client.ehlo()
-        client.login(settings.smtp_user.strip(), settings.smtp_password)
+        if _is_netease_host(host):
+            # 163/126 会广告 AUTH PLAIN，但 PLAIN 常直接 535；Python login 默认优先 PLAIN。
+            client.esmtp_features["auth"] = "LOGIN"
+        client.login(user, password)
         client.send_message(message)
     finally:
         try:
@@ -121,17 +146,33 @@ def send_nudge_email(*, to_email: str, subject: str, body: str) -> tuple[bool, s
             logger.info("SMTP 未配置，跳过发信", detail=reason)
             return False, reason
 
+        from_addr = settings.smtp_from.strip()
+        host = settings.smtp_host.strip()
+        if _is_netease_host(host):
+            from_addr = from_addr.lower()
         message = EmailMessage()
-        message["From"] = settings.smtp_from.strip()
+        message["From"] = from_addr
         message["To"] = to_email
         message["Subject"] = subject
         message.set_content(body)
 
         _deliver(settings, message)
-        logger.info("SMTP 催促邮件已接受投递", smtp_host=settings.smtp_host.strip())
+        logger.info("SMTP 催促邮件已接受投递", smtp_host=host)
         return True, ""
-    except smtplib.SMTPAuthenticationError:
-        logger.warning("SMTP 认证失败", smtp_host=_safe_host())
+    except smtplib.SMTPAuthenticationError as exc:
+        smtp_code = getattr(exc, "smtp_code", None)
+        raw_error = getattr(exc, "smtp_error", b"")
+        if isinstance(raw_error, bytes):
+            error_text = raw_error.decode("utf-8", "replace")
+        else:
+            error_text = str(raw_error or "")
+        logger.warning(
+            "SMTP 认证失败",
+            smtp_host=_safe_host(),
+            smtp_code=smtp_code,
+        )
+        if smtp_code == 550 or "no permission" in error_text.lower():
+            return False, _AUTH_NO_PERMISSION
         return False, _AUTH_FAIL
     except smtplib.SMTPRecipientsRefused:
         logger.warning("SMTP 收件被拒绝", smtp_host=_safe_host())

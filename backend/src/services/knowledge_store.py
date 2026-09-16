@@ -1,5 +1,6 @@
 import json
 import re
+from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any, cast
 
@@ -40,6 +41,7 @@ from src.utils.paths import resolve_upload_dir
 logger = get_logger()
 
 _KNOWLEDGE_SUBDIR = "knowledge"
+_UPLOAD_CHUNK = 1024 * 1024
 _EVAL_INCOMPLETE = (
     "还没判断完面经是否还留着。已挂状态已经记下，相关面经先留着，等判断完再问你删不删。"
 )
@@ -54,6 +56,74 @@ _DEFAULT_EVALUATE_PROMPT = (
 def resolve_knowledge_upload_dir() -> Path:
     settings = get_settings()
     return resolve_upload_dir(str(Path(settings.upload_dir) / _KNOWLEDGE_SUBDIR))
+
+
+def knowledge_oversize_message(limit: int) -> str:
+    gib = 1024 * 1024 * 1024
+    if limit >= gib:
+        label = f"{limit // gib}GB"
+    else:
+        label = f"{max(1, limit // (1024 * 1024))}MB"
+    return f"面经文件过大，请上传不超过 {label} 的 pdf、docx、txt 或 md。"
+
+
+def _knowledge_suffix(filename: str | None) -> str:
+    settings = get_settings()
+    name = filename or "experience.txt"
+    suffix = Path(name).suffix.lower()
+    allowed = {
+        item.lower() if item.startswith(".") else f".{item.lower()}"
+        for item in settings.knowledge_allowed_extensions
+    }
+    if suffix not in allowed:
+        raise ValidationFailed("面经格式不支持，请上传 pdf、docx 或 txt 文件。")
+    return suffix
+
+
+def _knowledge_dest(candidate_id: str, filename: str | None) -> Path:
+    safe_name = Path(filename or "experience.txt").name.replace("/", "_").replace("\\", "_")
+    dest = resolve_knowledge_upload_dir() / candidate_id / safe_name
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    return dest
+
+
+async def write_knowledge_upload(
+    candidate_id: str,
+    filename: str | None,
+    chunks: AsyncIterator[bytes],
+) -> Path:
+    """按落盘字节计数。超过 knowledge_max_bytes 则删掉半成品，不把整文件读进内存。"""
+    settings = get_settings()
+    _knowledge_suffix(filename)
+    dest = _knowledge_dest(candidate_id, filename)
+    written = 0
+    try:
+        with dest.open("wb") as out:
+            async for chunk in chunks:
+                if not chunk:
+                    continue
+                written += len(chunk)
+                if written > settings.knowledge_max_bytes:
+                    raise ValidationFailed(knowledge_oversize_message(settings.knowledge_max_bytes))
+                out.write(chunk)
+    except Exception:
+        dest.unlink(missing_ok=True)
+        raise
+    if written == 0:
+        dest.unlink(missing_ok=True)
+        raise ValidationFailed("请发送可用的面经文件。")
+    logger.info("面经原件已保存", candidate_id=candidate_id, bytes=written)
+    return dest
+
+
+def parse_knowledge_file(path: Path) -> str:
+    suffix = path.suffix.lower()
+    if suffix == ".md":
+        suffix = ".txt"
+    text, ok = parse_resume(path, suffix)
+    if not ok or not text.strip():
+        raise ValidationFailed("没能读出这份面经的正文，请改发文本或换一份文件。")
+    return text.strip()
 
 
 class KnowledgeStore:
@@ -95,10 +165,25 @@ class KnowledgeStore:
         self,
         candidate: Candidate,
         filename: str | None,
-        content: bytes,
+        content: bytes | None = None,
+        *,
+        chunks: AsyncIterator[bytes] | None = None,
     ) -> KnowledgeItemPublic:
         safe_name = filename or "experience.txt"
-        path = self.save_upload(candidate.id, safe_name, content)
+        if chunks is not None:
+            path = await write_knowledge_upload(candidate.id, safe_name, chunks)
+        elif content is not None:
+            path = self.save_upload(candidate.id, safe_name, content)
+        else:
+            raise ValidationFailed("请发送可用的面经文件。")
+        return await self._ingest_saved_path(candidate, safe_name, path)
+
+    async def _ingest_saved_path(
+        self,
+        candidate: Candidate,
+        safe_name: str,
+        path: Path,
+    ) -> KnowledgeItemPublic:
         body = self.parse_upload(path)
         existing = await self.find_item_by_body(candidate, body)
         if existing is not None:
@@ -206,29 +291,15 @@ class KnowledgeStore:
         if not content:
             raise ValidationFailed("请发送可用的面经文件。")
         if len(content) > settings.knowledge_max_bytes:
-            raise ValidationFailed("面经文件过大，请换一份更小的文件。")
-        suffix = Path(filename).suffix.lower()
-        allowed = {
-            item.lower() if item.startswith(".") else f".{item.lower()}"
-            for item in settings.knowledge_allowed_extensions
-        }
-        if suffix not in allowed:
-            raise ValidationFailed("面经格式不支持，请上传 pdf、docx 或 txt 文件。")
-        safe_name = Path(filename).name.replace("/", "_").replace("\\", "_")
-        dest = resolve_knowledge_upload_dir() / candidate_id / safe_name
-        dest.parent.mkdir(parents=True, exist_ok=True)
+            raise ValidationFailed(knowledge_oversize_message(settings.knowledge_max_bytes))
+        _knowledge_suffix(filename)
+        dest = _knowledge_dest(candidate_id, filename)
         dest.write_bytes(content)
-        logger.info("面经原件已保存", candidate_id=candidate_id)
+        logger.info("面经原件已保存", candidate_id=candidate_id, bytes=len(content))
         return dest
 
     def parse_upload(self, path: Path) -> str:
-        suffix = path.suffix.lower()
-        if suffix == ".md":
-            suffix = ".txt"
-        text, ok = parse_resume(path, suffix)
-        if not ok or not text.strip():
-            raise ValidationFailed("没能读出这份面经的正文，请改发文本或换一份文件。")
-        return text.strip()
+        return parse_knowledge_file(path)
 
     async def evaluate_for_rejected(
         self,

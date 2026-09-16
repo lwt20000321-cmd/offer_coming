@@ -2,6 +2,35 @@
 
 由编排器记录关键进展、验证证据、用户确认和阻塞原因。任务运行状态以 `.sdd/tasks.json` 为准，日志不维护第二份任务清单。
 
+## 2026-09-16 换成 yeah.net 后 SMTP 实测通过
+
+- 用户提供新发件箱 `offer_coming@yeah.net`。本地 `.env` 已改为 `smtp.yeah.net:465` SSL。
+- 实测：向发件箱自己发一封「小凹发信测试」，SMTP 接受投递（`sent_ok=True`）。已重启 8099 后端加载新配置。
+- 进箱需用户在 yeah.net 收件箱（含垃圾箱）确认。未另派 Planner/Tester。未记录授权码。
+
+## 2026-09-16 163 SMTP 发信失败
+
+- 用户：换成 163 后邮件发送失败，要求实测。
+- 实测：`smtp.163.com:465` SSL 能连上，EHLO 正常，AUTH LOGIN/PLAIN 均返回 `550 User has no permission`。587 STARTTLS 超时。不是配置缺失，也不是 Python AUTH PLAIN 单独导致。
+- 代码侧仍做了 163 强制 AUTH LOGIN、用户名小写、超时与 SSL context；550 时对话说明改为提示未开通 SMTP 或授权码无效。`tests/test_mail.py` 12 passed。真实进箱仍被账号权限挡住。
+- 恢复：在 163 网页邮箱开启 SMTP，用新授权码更新本地 `smtp_password` 后再测。未另派 Planner/Tester。未记录授权码。
+
+## 2026-09-16 面经上传上限改为 20MB
+
+- 用户确认面经文件上限为 20MB（`knowledge_max_bytes=20971520`）。仍按落盘字节计，不是内存上限。简历仍为 10MB。未另派 Planner/Tester。
+
+## 2026-09-16 面经 1GB 是文件上限不是内存上限
+
+- 用户纠正：上传上限管文件大小，不管进程内存。主入口改为 1MB 分块落盘并按写入字节计数；超限删半成品。未另派 Planner/Tester。
+
+## 2026-09-16 面经上传上限改为 1GB
+
+- 用户：50MB 仍不够，改为 1GB（`knowledge_max_bytes=1073741824`）。简历仍为 10MB。未另派 Planner/Tester。
+
+## 2026-09-16 面经上传上限改为 50MB
+
+- 用户：知识库 10MB 太少。已把 `knowledge_max_bytes` 调到 52428800。简历仍为 10MB。`--reload` 会加载新默认值；本地 `.env` 已写明该字段。未另派 Planner/Tester。
+
 ## 2026-09-15 对话五题被截断
 
 - 用户截图：说「又截断了」后小凹承认长度受限，重发五题仍缺第五题，并带了「简历深挖 · 3题」标题。

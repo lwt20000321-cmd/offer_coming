@@ -33,7 +33,7 @@ class AppSettings(BaseSettings):
     database_path: str = "data/offer_coming.db"
     upload_dir: str = "data/uploads"
     resume_max_bytes: int = 10485760
-    knowledge_max_bytes: int = 10485760
+    knowledge_max_bytes: int = 20971520
     resume_allowed_extensions: list[str] = [".pdf", ".docx", ".txt"]
     knowledge_allowed_extensions: list[str] = [".pdf", ".docx", ".txt", ".md"]
     session_ttl_days: int = 30

@@ -14,6 +14,7 @@ const SOURCE_LABEL: Record<KnowledgeItemListPublic['source_type'], string> = {
   upload: '上传',
   paste: '粘贴',
 }
+const KNOWLEDGE_MAX_BYTES = 20 * 1024 * 1024
 
 function sourceLine(item: KnowledgeItemListPublic): string {
   const source = SOURCE_LABEL[item.source_type]
@@ -130,6 +131,10 @@ export default function KnowledgePage() {
     const file = event.target.files?.[0] ?? null
     event.target.value = ''
     if (!file || uploading) {
+      return
+    }
+    if (file.size > KNOWLEDGE_MAX_BYTES) {
+      setActionError('面经文件过大，请上传不超过 20MB 的 pdf、docx、txt 或 md。')
       return
     }
     setUploading(true)

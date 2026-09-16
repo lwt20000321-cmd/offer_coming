@@ -561,7 +561,7 @@ Agent 建议删除**不**走本接口，走 API-006 用户回答后由知识库�
 
 `interview_at` 可空。仅日期则存 `YYYY-MM-DD`；带时刻则存带 `+08:00` 的 ISO。`deadline` = 该值的北京日期或 null。空则催促/出题排序**不**按截止日加急。
 
-简历与面经文件：`.pdf` / `.docx` / `.txt`；面经另允 `.md`。上限 `resume_max_bytes` / `knowledge_max_bytes` 默认 10485760。扫描件不做 OCR。面经文件主入口为 API-015。
+简历与面经文件：`.pdf` / `.docx` / `.txt`；面经另允 `.md`。上限 `resume_max_bytes` 默认 10485760（10MB），`knowledge_max_bytes` 默认 20971520（20MB，按落盘文件大小计，分块写入磁盘，不把整文件读进内存再量大小）。扫描件不做 OCR。面经文件主入口为 API-015。
 
 邮箱：trim + 小写后唯一。一名求职者一条对话。
 
@@ -972,7 +972,8 @@ Projects_Repo/offer_coming/
 | cors_origins | JSON list | 规范四地址 | CORS | 否 |
 | database_path | string | `data/offer_coming.db` | SQLite | 否 |
 | upload_dir | string | `data/uploads` | 简历与面经原件根 | 否 |
-| resume_max_bytes / knowledge_max_bytes | int | 10485760 | 上传上限 | 否 |
+| resume_max_bytes | int | 10485760 | 简历上传上限（10MB） | 否 |
+| knowledge_max_bytes | int | 20971520 | 面经**文件**大小上限（20MB，按落盘字节计，不是进程内存上限） | 否 |
 | session_ttl_days | int | 30 | 令牌有效期 | 否 |
 | timezone | string | Asia/Shanghai | 调度与业务日 | 否 |
 | llm_base_url | string | `https://dashscope.aliyuncs.com/compatible-mode/v1` | 百炼兼容 BASE（运营配置，用户不填） | 否 |

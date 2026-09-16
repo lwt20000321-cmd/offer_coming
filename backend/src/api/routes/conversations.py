@@ -1,4 +1,4 @@
-from pathlib import Path
+from collections.abc import AsyncIterator
 
 from fastapi import Depends, Query, Request
 from fastapi.encoders import jsonable_encoder
@@ -9,11 +9,11 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.deps import get_current_candidate
-from src.config.settings import get_settings
 from src.db.models import Candidate
 from src.db.session import get_db
 from src.services.agent import AgentService, try_acquire_conversation
 from src.services.candidate import CandidateService
+from src.services.knowledge_store import parse_knowledge_file, write_knowledge_upload
 from src.utils.errors import Conflict, ValidationFailed
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
@@ -66,7 +66,9 @@ async def send_message(
     candidate: Candidate = Depends(get_current_candidate),
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
-    content, upload_filename, upload_bytes = await _read_message_payload(request)
+    content, upload_filename, upload_text = await _read_message_payload(
+        request, candidate.id
+    )
     agent = AgentService(db)
     conversation = await agent.require_conversation(conversation_id, candidate)
     if not try_acquire_conversation(conversation.id):
@@ -77,13 +79,15 @@ async def send_message(
             conversation,
             content,
             upload_filename=upload_filename,
-            upload_bytes=upload_bytes,
+            upload_text=upload_text,
         ),
         media_type="text/event-stream",
     )
 
 
-async def _read_message_payload(request: Request) -> tuple[str, str | None, bytes | None]:
+async def _read_message_payload(
+    request: Request, candidate_id: str
+) -> tuple[str, str | None, str | None]:
     content_type = (request.headers.get("content-type") or "").lower()
     if "multipart/form-data" in content_type:
         form = await request.form()
@@ -92,25 +96,22 @@ async def _read_message_payload(request: Request) -> tuple[str, str | None, byte
             raise ValidationFailed("缩短后再发")
         upload = form.get("file")
         filename: str | None = None
-        data: bytes | None = None
+        upload_text: str | None = None
         if upload is not None and hasattr(upload, "read"):
             filename = getattr(upload, "filename", None) or "experience.txt"
-            data = await upload.read()
-            settings = get_settings()
-            if not data:
-                raise ValidationFailed("请发送可用的面经文件。")
-            if len(data) > settings.knowledge_max_bytes:
-                raise ValidationFailed("面经文件过大，请换一份更小的文件。")
-            suffix = Path(filename).suffix.lower()
-            allowed = {
-                item.lower() if item.startswith(".") else f".{item.lower()}"
-                for item in settings.knowledge_allowed_extensions
-            }
-            if suffix not in allowed:
-                raise ValidationFailed("面经格式不支持，请上传 pdf、docx 或 txt 文件。")
-        if not raw.strip() and not data:
+
+            async def chunks() -> AsyncIterator[bytes]:
+                while True:
+                    piece = await upload.read(1024 * 1024)
+                    if not piece:
+                        break
+                    yield piece
+
+            path = await write_knowledge_upload(candidate_id, filename, chunks())
+            upload_text = parse_knowledge_file(path)
+        if not raw.strip() and not upload_text:
             raise ValidationFailed("请写出内容")
-        return raw.strip(), filename, data
+        return raw.strip(), filename, upload_text
     try:
         payload = MessageCreate.model_validate(await request.json())
     except Exception as exc:

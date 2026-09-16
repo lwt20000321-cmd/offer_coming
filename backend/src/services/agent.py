@@ -288,6 +288,7 @@ class AgentService:
         *,
         upload_filename: str | None = None,
         upload_bytes: bytes | None = None,
+        upload_text: str | None = None,
     ) -> AsyncIterator[str]:
         queue: asyncio.Queue[str | None] = asyncio.Queue()
 
@@ -299,6 +300,7 @@ class AgentService:
                     user_text,
                     upload_filename=upload_filename,
                     upload_bytes=upload_bytes,
+                    upload_text=upload_text,
                 ):
                     await queue.put(chunk)
             except Exception as exc:
@@ -343,6 +345,7 @@ class AgentService:
         *,
         upload_filename: str | None = None,
         upload_bytes: bytes | None = None,
+        upload_text: str | None = None,
     ) -> AsyncIterator[str]:
         tools = ToolExecutor(self.db, candidate, self.settings)
         self.tools = tools
@@ -359,7 +362,11 @@ class AgentService:
         self._last_review_reply = ""
         self._api_key = ""
         stored_user = user_text
-        if upload_bytes and upload_filename:
+        if upload_text and upload_filename:
+            self._attachment_body = upload_text
+            self._attachment_name = upload_filename
+            stored_user = user_text.strip() or upload_filename
+        elif upload_bytes and upload_filename:
             path = self.knowledge_store.save_upload(
                 candidate.id, upload_filename, upload_bytes
             )

@@ -74,6 +74,7 @@ class FakeSMTP:
     last: FakeSMTP | None = None
     fail_connect = False
     fail_auth = False
+    fail_auth_permission = False
     raise_unexpected = False
 
     def __init__(self, host: str, port: int, *args: object, **kwargs: object) -> None:
@@ -83,6 +84,7 @@ class FakeSMTP:
         self.port = port
         self.started_tls = False
         self.login_user: str | None = None
+        self.esmtp_features: dict[str, str] = {"auth": "PLAIN LOGIN"}
         self.sent: list[EmailMessage] = []
         FakeSMTP.last = self
 
@@ -94,6 +96,8 @@ class FakeSMTP:
         return (220, b"ready")
 
     def login(self, user: str, password: str) -> tuple[int, bytes]:
+        if type(self).fail_auth_permission:
+            raise smtplib.SMTPAuthenticationError(550, b"User has no permission")
         if type(self).fail_auth:
             raise smtplib.SMTPAuthenticationError(535, b"5.7.8 Error")
         self.login_user = user
@@ -122,6 +126,7 @@ def fake_smtp(monkeypatch: pytest.MonkeyPatch) -> Iterator[type[FakeSMTP]]:
     FakeSMTP.last = None
     FakeSMTP.fail_connect = False
     FakeSMTP.fail_auth = False
+    FakeSMTP.fail_auth_permission = False
     FakeSMTP.raise_unexpected = False
     monkeypatch.setattr(mail_mod.smtplib, "SMTP", FakeSMTP)
     monkeypatch.setattr(mail_mod.smtplib, "SMTP_SSL", FakeSMTPSSL)
@@ -129,6 +134,7 @@ def fake_smtp(monkeypatch: pytest.MonkeyPatch) -> Iterator[type[FakeSMTP]]:
     FakeSMTP.last = None
     FakeSMTP.fail_connect = False
     FakeSMTP.fail_auth = False
+    FakeSMTP.fail_auth_permission = False
     FakeSMTP.raise_unexpected = False
 
 
@@ -174,6 +180,30 @@ def test_send_matches_nudge_todo_and_tone(tmp_path: Path, fake_smtp: type[FakeSM
     assert f"语气档：{tone_level}" in content
 
 
+def test_163_forces_login_and_lowercases_user(tmp_path: Path, fake_smtp: type[FakeSMTP]) -> None:
+    _configured(
+        tmp_path,
+        smtp_host="smtp.163.com",
+        smtp_port=465,
+        smtp_use_tls=False,
+        smtp_user="Offer_coming@163.com",
+        smtp_from="Offer_coming@163.com",
+    )
+    sent_ok, reason = send_nudge_email(
+        to_email="seeker@example.com",
+        subject="催促",
+        body="待办",
+    )
+    assert sent_ok is True
+    assert reason == ""
+    client = FakeSMTP.last
+    assert client is not None
+    assert isinstance(client, FakeSMTPSSL)
+    assert client.login_user == "offer_coming@163.com"
+    assert client.esmtp_features.get("auth") == "LOGIN"
+    assert client.sent[0]["From"] == "offer_coming@163.com"
+
+
 def test_ssl_transport_when_tls_disabled(tmp_path: Path, fake_smtp: type[FakeSMTP]) -> None:
     _configured(tmp_path, smtp_use_tls=False, smtp_port=465)
     sent_ok, reason = send_nudge_email(
@@ -201,6 +231,23 @@ def test_auth_failure_writes_auth_clause(tmp_path: Path, fake_smtp: type[FakeSMT
     assert sent_ok is False
     assert "认证失败" in reason
     assert "连接失败" not in reason
+    assert PLACEHOLDER_PASSWORD not in reason
+
+
+def test_163_no_permission_explains_smtp_or_auth_code(
+    tmp_path: Path, fake_smtp: type[FakeSMTP]
+) -> None:
+    _configured(tmp_path, smtp_host="smtp.163.com", smtp_port=465, smtp_use_tls=False)
+    FakeSMTP.fail_auth_permission = True
+    sent_ok, reason = send_nudge_email(
+        to_email="seeker@example.com",
+        subject="催促",
+        body="待办",
+    )
+    assert sent_ok is False
+    assert "认证失败" in reason
+    assert "SMTP" in reason
+    assert "授权码" in reason
     assert PLACEHOLDER_PASSWORD not in reason
 
 
